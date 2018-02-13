@@ -63,13 +63,14 @@ void PreFilters(){
     //erode(gray,gray,kernel);
     //morphologyEx(gray,gray,MORPH_CLOSE,kernel);
 
-    //medianBlur(gray,gray,3);
+    medianBlur(gray,gray,3);
     //GaussianBlur(gray,gray,Size(3,3),0);
 }
 
 void CannyThreshold(int,void *){
     //aplicando Canny
-    Canny(gray,detectedEdges,lowThreshold,lowThreshold*razon,3); //El ultimo es kernel size
+    detectedEdges = gray;
+    //Canny(gray,detectedEdges,lowThreshold,lowThreshold*razon,3); //El ultimo es kernel size
     dst = Scalar::all(0);
     gray.copyTo(dst,detectedEdges);
 }
@@ -161,7 +162,8 @@ void EllipsisDetection(){
         float dif =w - h;
         float sum = w + h;
         float area = w*h;
-        if( abs(dif) <= 20 && sum > 4 && area > 20 && area < 1800){ //&& dist(minEllipse[i].center,Point2f(xm,ym)) < 100){
+        //if( abs(dif) <= 20 && sum > 4 && area > 20 && area < 1800){ //&& dist(minEllipse[i].center,Point2f(xm,ym)) < 100){
+        if( abs(dif) <= 10){ //&& dist(minEllipse[i].center,Point2f(xm,ym)) < 100){
             if(hierachy[i][2] != -1)
                 if(hierachy[ hierachy[i][2] ][2] == -1){
                     selected.push_back(minEllipse[i]);
@@ -295,11 +297,11 @@ int main(){
 
         PreFilters();
 
-        //CannyThreshold(0,0);
+        CannyThreshold(0,0);
 
-        //EllipsisDetection();
+        EllipsisDetection();
 
-        imshow(WindowName,gray);
+        imshow(WindowName,Ellipsis);
         imshow(WindowRGB,frame);
 
         //----Teclas para analizar los frames
