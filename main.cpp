@@ -53,15 +53,15 @@ void PreFilters(){
 
     /**Equalizaciones**/
     //equalizeHist(gray,gray);
-    //GaussianBlur(gray,gray,Size(3,3),0);
-    adaptiveThreshold(gray,gray,255,ADAPTIVE_THRESH_GAUSSIAN_C,THRESH_BINARY,11,4);
+    GaussianBlur(gray,gray,Size(3,3),0);
+    adaptiveThreshold(gray,gray,255,ADAPTIVE_THRESH_GAUSSIAN_C,THRESH_BINARY,41,15);
 
-    //Mat kernel = getStructuringElement(MORPH_RECT,Size(3,3));
+    Mat kernel = getStructuringElement(MORPH_RECT,Size(3,3));
     //erode(gray,gray,kernel);
     //dilate(gray,gray,kernel);
     //dilate(gray,gray,kernel);
     //erode(gray,gray,kernel);
-    //morphologyEx(gray,gray,MORPH_OPEN,kernel);
+    //morphologyEx(gray,gray,MORPH_CLOSE,kernel);
 
     //medianBlur(gray,gray,3);
     //GaussianBlur(gray,gray,Size(3,3),0);
@@ -258,11 +258,11 @@ void EllipsisDetection(){
 
 int main(){
 
-    //cv::VideoCapture cap("../../../videos/calibration_mslifecam.avi");
-    //cv::VideoCapture cap("../../../videos/calibration_ps3eyecam.avi");
-    //cv::VideoCapture cap("../../../videos/Kinect2_rgb.avi");
-    //cv::VideoCapture cap("../../../videos/realsense_Depth.avi");
-    cv::VideoCapture cap("../../../videos/realsense_RGB.avi");
+    //cv::VideoCapture cap("videos/calibration_mslifecam.avi");
+    cv::VideoCapture cap("videos/calibration_ps3eyecam.avi");
+    //cv::VideoCapture cap("videos/Kinect2_rgb.avi");
+    //cv::VideoCapture cap("videos/realsense_Depth.avi");
+    //cv::VideoCapture cap("videos/realsense_RGB.avi");
 
     if(!cap.isOpened()){
         cout << "Cannot open the video file" << endl;
@@ -295,11 +295,11 @@ int main(){
 
         PreFilters();
 
-        CannyThreshold(0,0);
+        //CannyThreshold(0,0);
 
-        EllipsisDetection();
+        //EllipsisDetection();
 
-        imshow(WindowName,Ellipsis);
+        imshow(WindowName,gray);
         imshow(WindowRGB,frame);
 
         //----Teclas para analizar los frames
