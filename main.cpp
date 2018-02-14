@@ -63,17 +63,17 @@ void PreFilters(){
 
     /**Equalizaciones**/
     //equalizeHist(gray,gray);
-    GaussianBlur(gray,gray,Size(3,3),0);
-    adaptiveThreshold(gray,gray,255,ADAPTIVE_THRESH_GAUSSIAN_C,THRESH_BINARY,41,6);
+    GaussianBlur(gray,gray,Size(3,3),0); // Mejora la binarizacion
+    adaptiveThreshold(gray,gray,255,ADAPTIVE_THRESH_GAUSSIAN_C,THRESH_BINARY,41,6);//Para discriminar mejor las gradiantes
 
-    Mat kernel = getStructuringElement(MORPH_RECT,Size(3,3));
+    //Mat kernel = getStructuringElement(MORPH_RECT,Size(3,3));
     //erode(gray,gray,kernel);
     //dilate(gray,gray,kernel);
     //dilate(gray,gray,kernel);
     //erode(gray,gray,kernel);
     //morphologyEx(gray,gray,MORPH_CLOSE,kernel);
 
-    medianBlur(gray,gray,3);
+    medianBlur(gray,gray,3); // Mejora la deteccion de Contornos
     //GaussianBlur(gray,gray,Size(3,3),0);
 }
 
@@ -154,8 +154,8 @@ void EllipsisDetection(){
     for( int i = 0; i< contours.size(); i++ ){
         float w = minEllipse[i].size.width;
         float h = minEllipse[i].size.height;
-        float c_x = minEllipse[i].center.x;
-        float c_y = minEllipse[i].center.y;
+        //float c_x = minEllipse[i].center.x;
+        //float c_y = minEllipse[i].center.y;
         float dif = w - h;
 
         //Imprimiendo las jerarquias
@@ -263,6 +263,8 @@ void EllipsisDetection(){
     }
 
     
+
+    
 }
 
 
@@ -283,8 +285,8 @@ int main(){
 
     namedWindow(WindowName,0);
     resizeWindow(WindowName,1000,1000);
-    createTrackbar("Min Threshold:",WindowName,&lowThreshold,max_lowThreshold,CannyThreshold);
-    createTrackbar("Min Threshold:",WindowName,&lowThreshold,max_lowThreshold,CannyThreshold);
+    //createTrackbar("Min Threshold:",WindowName,&lowThreshold,max_lowThreshold,CannyThreshold);
+    //createTrackbar("Min Threshold:",WindowName,&lowThreshold,max_lowThreshold,CannyThreshold);
 
     namedWindow(WindowRGB,0);
     resizeWindow(WindowRGB,800,600);
