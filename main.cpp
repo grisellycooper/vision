@@ -251,9 +251,19 @@ void EllipsisDetection(){
         }
     }
 
+    // Vector 
+    /*
+    vector<Point2f> track;
+    for( float i=0;i<CPs.size();i++ ){
+        for( float j=0;j<CPs.size();j++ ){
+            if( distance(CPs[i],CPs[j])<m ){
+                track[i]=CPs[i]+CPs[j];
+            }
+            line(frame,CPs[i],CPs[j],Scalar(0,0,0),2,8);
+        }
+    }*/
 
-
-
+    
 }
 
 
@@ -283,9 +293,26 @@ int main(){
     namedWindow(WindowRGB,0);
     resizeWindow(WindowRGB,800,600);
 
-
     int r = 0;
     bool finish = 1;
+
+    /*
+    cap.set(1,r);
+    cap.read(frame);
+
+    if(frame.empty()) break;
+    dst.create( frame.size(), frame.type() );
+
+    PreFilters();
+
+    CannyThreshold(0,0);
+
+    EllipsisDetection();
+
+    imshow(WindowName,Ellipsis);
+    imshow(WindowRGB,frame);
+    */
+
 
     while(finish)
     {
