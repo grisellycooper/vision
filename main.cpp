@@ -16,6 +16,12 @@ cv::Mat detectedEdges;
 cv::Mat Ellipsis;
 cv::Mat dst; // Matriz Final
 
+using namespace std;
+using namespace cv;
+
+//*****Control Points Vector********//
+std::vector<Point2f> FinalControlPoints;
+
 /**Variables for Global Threshold**/
 bool playVideo =true;
 //----------------------//
@@ -29,11 +35,15 @@ int max_thresh = 255;
 
 cv::RNG rng(12345);
 
-using namespace std;
-using namespace cv;
-
 const char * WindowName = "Calibration";
 const char * WindowRGB = "RGB";
+
+//Video Files
+//#define video_path "videos/calibration_mslifecam.avi"
+#define video_path "videos/calibration_ps3eyecam.avi"
+//#define video_path "videos/Kinect2_rgb.avi"
+//#define video_path "videos/realsense_Depth.avi"
+//#define video_path "videos/realsense_RGB.avi"
 
 void PreFilters(){
     /**Pasando a Grises**/
@@ -54,7 +64,7 @@ void PreFilters(){
     /**Equalizaciones**/
     //equalizeHist(gray,gray);
     GaussianBlur(gray,gray,Size(3,3),0);
-    adaptiveThreshold(gray,gray,255,ADAPTIVE_THRESH_GAUSSIAN_C,THRESH_BINARY,41,15);
+    adaptiveThreshold(gray,gray,255,ADAPTIVE_THRESH_GAUSSIAN_C,THRESH_BINARY,41,6);
 
     Mat kernel = getStructuringElement(MORPH_RECT,Size(3,3));
     //erode(gray,gray,kernel);
@@ -87,47 +97,34 @@ float dist(Point2f a, Point2f b){
     return sqrt( pow(a.x-b.x,2)+pow(a.y-b.y,2) );
 }
 
-float NearestNeighbor(const vector<Point2f>& v, Point2f a){
-    float min = 1000000.0;
-    for(int i = 0; i < v.size(); i++){
-        float d = dist(v[i],a);
-        if(min > d)
-            min = d;
-    }
-    return min;
-}
-
+// Funcion para Obtener los puntos de Control
+// Entra un conjunto de puntos y devuelve los puntos casi iguales (20 max)
 vector<Point2f> getControlPoints(const vector<Point2f> & centers){
     std::vector<Point2f> v;
-    float t = 5;
-    for(int i = 0; i < centers.size();i++){
-        std::vector<Point2f> tmp = centers;
-        tmp.erase(tmp.begin()+i);
-        if(NearestNeighbor(tmp,centers[i]) <= t)
-            v.push_back(centers[i]);
-    }
-    return v;
-}
+    std::vector<int> alreadyRegistered;
+    float t = 3.0f; // Valor de Desviacion Maxima
+    for(int i = 0; i < centers.size();i++)
+        for(int j= 0; j < centers.size(); j++){
+            if(i != j && dist(centers[i],centers[j]) < t &&
+            (std::find(alreadyRegistered.begin(), alreadyRegistered.end(),i) == alreadyRegistered.end() ||
+            std::find(alreadyRegistered.begin(), alreadyRegistered.end(),j) == alreadyRegistered.end()) //&&
+            //v.size() <= 20)
+            )
+            {
+                // Aqui va el promedio de ambos
+                float d_x = centers[i].x + centers[j].x;
+                float d_y = centers[i].y + centers[j].y;
+                v.push_back(Point2f(d_x/2.0f,d_y/2.0f));
 
-void EraseDuplicates(vector<Point2f> & v){
-    std::vector<Point2f> v2;
-    for(int i = 0; i < v.size(); i++){
-        std::vector<Point2f> tmp = v;
-        tmp.erase(tmp.begin()+i);
-        for(int j = 0; j < tmp.size();j++){
-            float d = dist(v[i],tmp[j]);
-            if(d < 0.5){
-                bool flag = false;
-                for(int k = 0; k < v2.size();k++){
-                    if(dist(v[i],v2[k]) < 0.5) flag = true;
-                }
-                if(!flag)
-                    v2.push_back(v[i]);
+                //Registramos los centros para no repetirlos
+                alreadyRegistered.push_back(i);
+                alreadyRegistered.push_back(j);
             }
         }
-    }
-    v = v2;
+
+    return v;    
 }
+
 
 void EllipsisDetection(){
     vector<vector<Point>> contours;
@@ -137,13 +134,13 @@ void EllipsisDetection(){
     findContours(detectedEdges,contours,hierachy,CV_RETR_TREE,CV_CHAIN_APPROX_SIMPLE,Point(0,0));
 
     //Find rotated rectangles and ellipsis
-    vector<RotatedRect>minRect(contours.size());
+    //vector<RotatedRect>minRect(contours.size());
     vector<RotatedRect>minEllipse(contours.size());
 
 
     for( int i = 0; i < contours.size(); i++ ){
-        minRect[i] = minAreaRect( Mat(contours[i]) );
-        if( contours[i].size() > 5 ){
+        //minRect[i] = minAreaRect( Mat(contours[i]) );
+        if( contours[i].size() > 4 ){
             minEllipse[i] = fitEllipse( Mat(contours[i]) ); }
     }
 
@@ -159,63 +156,64 @@ void EllipsisDetection(){
         float h = minEllipse[i].size.height;
         float c_x = minEllipse[i].center.x;
         float c_y = minEllipse[i].center.y;
-        float dif =w - h;
-        float sum = w + h;
-        float area = w*h;
-        //if( abs(dif) <= 20 && sum > 4 && area > 20 && area < 1800){ //&& dist(minEllipse[i].center,Point2f(xm,ym)) < 100){
-        if( abs(dif) <= 10){ //&& dist(minEllipse[i].center,Point2f(xm,ym)) < 100){
-            if(hierachy[i][2] != -1)
-                if(hierachy[ hierachy[i][2] ][2] == -1){
-                    selected.push_back(minEllipse[i]);
-                    //putText(Ellipsis,to_string(selected.size()),Point(c_x,c_y),FONT_HERSHEY_SIMPLEX,0.4,Scalar(255,0,0),1,CV_AA);
+        float dif = w - h;
+
+        //Imprimiendo las jerarquias
+        // Posicion: Next | Previous | First_Child | Parent
+        //cout << i << ": ";
+        //for(int k = 0; k < 4; k++)
+        //    cout << hierachy[i][k] << ",";
+        //cout << endl;
+
+        /**
+        selected.push_back(minEllipse[i]);
+                    //putText(Ellipsis,to_string(i),Point(c_x,c_y),FONT_HERSHEY_SIMPLEX,0.4,Scalar(255,0,0),1,CV_AA);
                     //cout << selected.size() << endl;
                     //cout <<"width: "<< w <<" height: "<< h << endl;
                     //cout <<"dif: "<< abs(dif) <<" Semiperimetro: "<< sum << " area: " << area<< endl; 
-                }
-
-            if(hierachy[i][3] != -1)
-                if(hierachy[ hierachy[i][3] ][3] == -1){
+        ellipse( Ellipsis, minEllipse[i], Scalar(0,0,255), 1, 8 );
+        **/
+        
+        if(abs(dif) < 20){
+            if(hierachy[i][2] != -1){ // Si el Contour tiene Hijo que hijo sea unico
+                int child_index = hierachy[i][2];
+                if(hierachy[child_index][0] == -1 && hierachy[child_index][1] == -1 && hierachy[child_index][2] == -1){
                     selected.push_back(minEllipse[i]);
-                    //putText(Ellipsis,to_string(selected.size()),Point(c_x,c_y),FONT_HERSHEY_SIMPLEX,0.4,Scalar(255,0,0),1,CV_AA);
+                    //putText(Ellipsis,to_string(i),Point(c_x,c_y),FONT_HERSHEY_SIMPLEX,0.4,Scalar(255,0,0),1,CV_AA);
                     //cout << selected.size() << endl;
                     //cout <<"width: "<< w <<" height: "<< h << endl;
                     //cout <<"dif: "<< abs(dif) <<" Semiperimetro: "<< sum << " area: " << area<< endl; 
+                    ellipse( Ellipsis, minEllipse[i], Scalar(0,0,255), 1, 8 );
                 }
-
-            ellipse( Ellipsis, minEllipse[i], Scalar(0,255,0), 1, 8 );
+            }
+         
+            if( hierachy[i][0] == -1 && hierachy[i][1] == -1 && hierachy[i][2] == -1){
+                selected.push_back(minEllipse[i]);
+                //putText(Ellipsis,to_string(i),Point(c_x,c_y),FONT_HERSHEY_SIMPLEX,0.4,Scalar(255,0,0),1,CV_AA);
+                //cout << selected.size() << endl;
+                //cout <<"width: "<< w <<" height: "<< h << endl;
+                //cout <<"dif: "<< abs(dif) <<" Semiperimetro: "<< sum << " area: " << area<< endl; 
+                ellipse( Ellipsis, minEllipse[i], Scalar(0,0,255), 1, 8 );          
+            }
         }
+        
+        
     }
 
-    
+
+    cout << "Number Selected Ellipsises: " << selected.size() << endl;
     vector<Point2f> centers;
-    for( int i = 0; i < selected.size(); i++ ){        
-        centers.push_back(selected[i].center);        
+    for( int i = 0; i < selected.size(); i++ ){
+        centers.push_back(selected[i].center);
+        //cout << "x:"<< centers[i].x << ", y:" << centers[i].y << endl;
+        //putText(Ellipsis,to_string(i),Point(centers[i].x,centers[i].y),FONT_HERSHEY_SIMPLEX,0.4,Scalar(255,0,0),1,CV_AA);      
     }
-/**
-    // Calculating the mediana
-    vector<Point2f> c1 = centers;
-    vector<Point2f> c2 = centers;
-    sort(c1.begin(),c1.end(),cmpx);
-    sort(c2.begin(),c2.end(),cmpy);
 
-    int n = c1.size()/2;
-    float xm = c1[ n ].x;
-    float ym = c2[ n ].y;  
-
-    for( int i = 0; i< selected.size(); i++ ){
-        if( dist(selected[i].center,Point2f(xm,ym)) < 200){
-            Scalar color = Scalar( 0,255,0 );        
-            //drawContours( Ellipsis, contours, i, color, 1, 8, vector<Vec4i>(), 0, Point() );
-            ellipse( Ellipsis, selected[i], color, 1, 8 );
-        }
-    }
-*/
     vector<Point2f> CPs = getControlPoints(centers);
-    EraseDuplicates(CPs);
-    cout << CPs.size()<<endl;
+    cout << "Number of Control Points: "<< CPs.size() <<endl;
 
     for(int i = 0; i < CPs.size();i++){
-        circle(Ellipsis,CPs[i],1,Scalar(0,0,255),1.5,8);
+        circle(Ellipsis,CPs[i],1,Scalar(0,0,255),3,8);
     }
     
 
@@ -237,18 +235,31 @@ void EllipsisDetection(){
             if(dist(Point2f(xm,ym),CPs[i]) <= r)
                 count++;
         }
-        if(abs(count - 20)<2)
+        if(abs(count - 20)<1)
             break;
     }
 
-    circle( Ellipsis, Point2f(xm,ym),r + 25,Scalar( 255,0,0 ), 1, 8 );
+    circle( Ellipsis, Point2f(xm,ym),r + 15,Scalar( 255,0,0 ), 1, 8 );
 
+    // Esta parte debe ayudar a validar nuestros PC
+    // Como maximo deberiamos tener 20
+    FinalControlPoints.clear();
     for( int i = 0; i< CPs.size(); i++ ){
-        if( dist(CPs[i],Point2f(xm,ym)) < r+25){
-            Scalar color = Scalar( 255,0,0 );        
+        if( dist(CPs[i],Point2f(xm,ym)) < r+15 && FinalControlPoints.size() < 20){
+            Scalar color = Scalar( 255,0,0 );
             //drawContours( Ellipsis, contours, i, color, 1, 8, vector<Vec4i>(), 0, Point() );
             circle( frame, CPs[i],2,color, 2, 8 );
+            FinalControlPoints.push_back(CPs[i]);
         }
+    }
+
+    sort(FinalControlPoints.begin(), FinalControlPoints.end(),cmpy);
+
+    //Dibujamos una linea q una los PC's
+    if(FinalControlPoints.size() == 20) // -- >> Esta debe ser una linea de comprobacion para los PCs
+    for(int i = 1; i < FinalControlPoints.size();i++){
+        Scalar color = Scalar( 0,255,0 );
+        line(frame,FinalControlPoints[i-1],FinalControlPoints[i],color,1.5,8);
     }
 
 
@@ -260,11 +271,8 @@ void EllipsisDetection(){
 
 int main(){
 
-    //cv::VideoCapture cap("videos/calibration_mslifecam.avi");
-    cv::VideoCapture cap("videos/calibration_ps3eyecam.avi");
-    //cv::VideoCapture cap("videos/Kinect2_rgb.avi");
-    //cv::VideoCapture cap("videos/realsense_Depth.avi");
-    //cv::VideoCapture cap("videos/realsense_RGB.avi");
+    cv::VideoCapture cap(video_path);
+    //cv::VideoCapture cap(0); // --> For video Capture
 
     if(!cap.isOpened()){
         cout << "Cannot open the video file" << endl;
@@ -291,19 +299,27 @@ int main(){
     {
         cap.set(1,r);
         cap.read(frame);
+        
+        //cap >> frame; // --> For video Capture
+
+        cout << "===========================\n";
+        cout << "Frame No " << r <<endl;
+        cout << "===========================\n";
 
         if(frame.empty()) break;
         dst.create( frame.size(), frame.type() );
 
         PreFilters();
 
-        CannyThreshold(0,0);
+        CannyThreshold(0,0);//---> Solo funciona como ByPass, no se usa realmente
 
         EllipsisDetection();
 
         imshow(WindowName,Ellipsis);
         imshow(WindowRGB,frame);
 
+
+        
         //----Teclas para analizar los frames
         int key = waitKey(100000);//Espera 5 seg a que se presione un key
         switch(key){
@@ -312,17 +328,24 @@ int main(){
             break;
         case 'j':
             r--;
+            if(r < 0) r = 0;
             break;
         case 'd':
             r++;
             break;
         case 'a':
             r--;
+            if(r < 0) r = 0;
             break;
         case 27:
             finish = 0;
             break;
         }
+
+        //For Video Capture
+        //int key = waitKey(10);
+        //if(key == 27)
+        //    break;
 
     }
 
