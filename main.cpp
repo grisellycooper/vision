@@ -20,7 +20,9 @@ using namespace std;
 using namespace cv;
 
 //*****Control Points Vector********//
-std::vector<Point2f> FinalControlPoints;
+std::vector<Point2f> trackedPoints;
+int numTrackedItems = 6;
+bool isTracking = false;
 
 /**Variables for Global Threshold**/
 bool playVideo =true;
@@ -94,7 +96,7 @@ bool cmpy(Point2f a, Point2f b){
 }
 
 float dist(Point2f a, Point2f b){
-    return sqrt( pow(a.x-b.x,2)+pow(a.y-b.y,2) );
+    return sqrt( pow(a.x-b.x,2.0f)+pow(a.y-b.y,2.0f) );
 }
 
 // Funcion para Obtener los puntos de Control
@@ -200,7 +202,6 @@ void EllipsisDetection(){
         
     }
 
-
     cout << "Number Selected Ellipsises: " << selected.size() << endl;
     vector<Point2f> centers;
     for( int i = 0; i < selected.size(); i++ ){
@@ -215,8 +216,72 @@ void EllipsisDetection(){
     for(int i = 0; i < CPs.size();i++){
         circle(Ellipsis,CPs[i],1,Scalar(0,0,255),3,8);
     }
-    
 
+    if(isTracking){
+        std::vector<float> distances;
+        for(int k = 0; k < numTrackedItems;k++){
+            Point2f tmp = trackedPoints[k];
+            float min = 100000.0f;
+            int index = 0;
+            for(int i = 0; i < CPs.size(); i++){
+                if( min > dist(trackedPoints[k],CPs[i]) ){
+                    min = dist(trackedPoints[k],CPs[i]);
+                    index = i;
+                }
+            }
+            distances.push_back(dist(trackedPoints[k],CPs[index]));
+            trackedPoints[k] = CPs[index]; // Actualizamos la posicion de los puntos
+        }
+        bool isCorrect = true;
+        float dmean = 0.0;
+        float dstddev = 0.0;
+
+        // Mean standard algorithm
+        for (int i = 0; i < numTrackedItems; ++i)
+        {
+            dmean += distances[i];
+        }
+        dmean /= (float)numTrackedItems;
+
+        // Standard deviation standard algorithm
+        std::vector<float> var(numTrackedItems);
+        for (int i = 0; i < numTrackedItems; ++i)
+        {
+            var[i] = (dmean - distances[i]) * (dmean - distances[i]);
+        }
+        for (int i = 0; i < numTrackedItems; ++i)
+        {
+            dstddev += var[i];
+        }
+        dstddev = sqrt(dstddev / (float)numTrackedItems);
+        //cout.precision(6);
+        std::cout << "Mean: " << dmean << "   StdDev: " << dstddev << std::endl;
+
+        if(dstddev >3.0f){
+            isCorrect = false;
+        }
+
+
+
+        if(!isCorrect){
+            cout << "Couldnt keep tracking\n";
+            isTracking = false;
+        }
+
+    }
+    else{
+        cout << "StartTracking\n";
+        trackedPoints.clear();
+        for(int i = 0; i < numTrackedItems; i++){
+            trackedPoints.push_back(CPs[i]);
+        }
+        isTracking = true;
+    }
+    if(isTracking)
+        for(int i = 0; i < numTrackedItems; i++)
+            circle(frame, trackedPoints[i],1,Scalar(0,0,255),3,8);
+
+    /**
 
     // Calculating the mediana
     vector<Point2f> c1 = CPs;
@@ -229,42 +294,37 @@ void EllipsisDetection(){
     float ym = c2[ n ].y; 
 
     int r;
-    for(r = 1; r < 400; r++){
-        int count = 0;
-        for(int i = 0; i < CPs.size(); i++){
-            if(dist(Point2f(xm,ym),CPs[i]) <= r)
-                count++;
-        }
-        if(abs(count - 20)<1)
-            break;
-    }
-
-    circle( Ellipsis, Point2f(xm,ym),r + 15,Scalar( 255,0,0 ), 1, 8 );
+    bool patternWasFound = true;
 
     // Esta parte debe ayudar a validar nuestros PC
     // Como maximo deberiamos tener 20
-    FinalControlPoints.clear();
-    for( int i = 0; i< CPs.size(); i++ ){
-        if( dist(CPs[i],Point2f(xm,ym)) < r+15 && FinalControlPoints.size() < 20){
-            Scalar color = Scalar( 255,0,0 );
-            //drawContours( Ellipsis, contours, i, color, 1, 8, vector<Vec4i>(), 0, Point() );
-            circle( frame, CPs[i],2,color, 2, 8 );
-            FinalControlPoints.push_back(CPs[i]);
+    // Ademas debe ordenarlos de la sgte manera fila por fila, columna por columna
+    // Debe retornar true si se cumplen los requisitos
+    for(r = 1; r < 200; r++){
+        int count = 0;
+        for(int i = 0; i < CPs.size(); i++){
+            if(dist(Point2f(xm,ym),CPs[i]) < r)
+                count++;
         }
+        //================================================
+        // Hace una verificacion fuerte de 20 elementos!!!!
+        //================================================
+        if(count >= 20){
+            for(int i = 0; i < CPs.size(); i++)
+                if(dist(Point2f(xm,ym),CPs[i]) < r)
+                    FinalControlPoints.push_back(CPs[i]);
+            break;
+        } 
+            
     }
 
-    sort(FinalControlPoints.begin(), FinalControlPoints.end(),cmpy);
-
-    //Dibujamos una linea q una los PC's
-    if(FinalControlPoints.size() == 20) // -- >> Esta debe ser una linea de comprobacion para los PCs
-    for(int i = 1; i < FinalControlPoints.size();i++){
-        Scalar color = Scalar( 0,255,0 );
-        line(frame,FinalControlPoints[i-1],FinalControlPoints[i],color,1.5,8);
+    circle( Ellipsis, Point2f(xm,ym),r + 15,Scalar( 255,0,0 ), 1, 8 );
+    for( int i = 0; i< FinalControlPoints.size(); i++ ){
+        circle( frame, FinalControlPoints[i] ,2,Scalar( 255,0,0 ), 2, 8 );
     }
+    cout << "FinalControlPoints: "<< FinalControlPoints.size() <<endl;
+    **/
 
-    
-
-    
 }
 
 
