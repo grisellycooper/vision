@@ -4,6 +4,7 @@ g++ -std=c++11 main.cpp `pkg-config opencv --cflags --libs` -o main && ./main
 
 #include <iostream>
 #include <vector>
+#include <cmath>
 #include <opencv2/opencv.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <stdio.h>
@@ -36,6 +37,14 @@ int thresh = 160;
 int max_thresh = 255;
 
 cv::RNG rng(12345);
+
+
+// Variables del tracking 
+vector<Point2f> p(4);
+vector< Point2f > st;
+vector< Point2f > col2; 
+vector< Point2f > col1; 
+
 
 const char * WindowName = "Calibration";
 const char * WindowRGB = "RGB";
@@ -87,16 +96,31 @@ void CannyThreshold(int,void *){
     gray.copyTo(dst,detectedEdges);
 }
 
-bool cmpx(Point2f a,Point2f b){
+bool cmpx(const Point2f &a,const Point2f &b){
     return a.x < b.x;
 }
 
-bool cmpy(Point2f a, Point2f b){
+bool cmpy(const Point2f &a, const Point2f &b){
     return a.y < b.y;
 }
 
-float dist(Point2f a, Point2f b){
+float dist(const Point2f &a, const Point2f &b){
     return sqrt( pow(a.x-b.x,2.0f)+pow(a.y-b.y,2.0f) );
+}
+
+float angle(Point2f b){
+    return atan2(b.y,b.x);
+}
+
+bool isCollinear(const Point2f &a,const Point2f &b, const Point2f &c){
+    float A = a.x*(b.y-c.y) + b.x*(c.y-a.y) + c.x*(a.y-b.y);
+    return A<0.01?true:false;
+}
+
+
+float area(const Point2f &a,const Point2f &b, const Point2f &c){
+    float A = a.x*(b.y-c.y) + b.x*(c.y-a.y) + c.x*(a.y-b.y);
+    return A;
 }
 
 // Funcion para Obtener los puntos de Control
@@ -128,6 +152,10 @@ vector<Point2f> getControlPoints(const vector<Point2f> & centers){
 }
 
 
+vector<Point2f> fi1;
+vector<Point2f> fi4;
+
+
 void EllipsisDetection(){
     vector<vector<Point>> contours;
     vector<Vec4i> hierachy;
@@ -146,6 +174,9 @@ void EllipsisDetection(){
             minEllipse[i] = fitEllipse( Mat(contours[i]) ); }
     }
 
+
+
+
     /// Draw contours + rotated rects + ellipses
     Ellipsis = detectedEdges;
     cvtColor(detectedEdges, Ellipsis,CV_GRAY2BGR);
@@ -153,6 +184,7 @@ void EllipsisDetection(){
     //cout << "==================================================\n";
 
     vector<RotatedRect> selected;
+
     for( int i = 0; i< contours.size(); i++ ){
         float w = minEllipse[i].size.width;
         float h = minEllipse[i].size.height;
@@ -211,12 +243,234 @@ void EllipsisDetection(){
     }
 
     vector<Point2f> CPs = getControlPoints(centers);
-    cout << "Number of Control Points: "<< CPs.size() <<endl;
+    std::vector<Point2f> FinalControlPoints;
 
-    for(int i = 0; i < CPs.size();i++){
-        circle(Ellipsis,CPs[i],1,Scalar(0,0,255),3,8);
+    if( CPs.size() != 0){
+
+        cout << "Number of Control Points: "<< CPs.size() <<endl;
+
+        for(int i = 0; i < CPs.size();i++){
+            circle(Ellipsis,CPs[i],1,Scalar(0,0,255),3,8);
+        }
+
+        for(int i = 0; i < CPs.size();i++){
+            circle(frame,CPs[i],1,Scalar(0,0,255),3,8);
+        }
+                
+        // Calculating the mediana
+        vector<Point2f> c1 = CPs;
+        vector<Point2f> c2 = CPs;
+        sort(c1.begin(),c1.end(),cmpx);
+        sort(c2.begin(),c2.end(),cmpy);
+
+        int n = c1.size()/2;
+        float xm = c1[ n ].x;
+        float ym = c2[ n ].y; 
+
+        int rr;
+        bool patternWasFound = true;
+
+        // Esta parte debe ayudar a validar nuestros PC
+        // Como maximo deberiamos tener 20
+        // Ademas debe ordenarlos de la sgte manera fila por fila, columna por columna
+        // Debe retornar true si se cumplen los requisitos
+        for(rr = 1; rr < 200; rr++){
+            int count = 0;
+            for(int i = 0; i < CPs.size(); i++){
+                if(dist(Point2f(xm,ym),CPs[i]) < rr)
+                    count++;
+            }
+            //================================================
+            // Hace una verificacion fuerte de 20 elementos!!!!
+            //================================================
+            if(count >= 20){
+                for(int i = 0; i < CPs.size(); i++)
+                    if(dist(Point2f(xm,ym),CPs[i]) < rr)
+                        FinalControlPoints.push_back(CPs[i]);
+                break;
+            } 
+                
+        }
+
+  
     }
 
+    
+
+
+    if( FinalControlPoints.size() != 0 ){
+        /*
+        for(int i = 0; i < p.size();i++){
+            circle(frame,p[i],1,Scalar(153, 102, 0),3,8);
+        }*/
+            
+        if(isTracking){  
+
+            /*
+
+            for(int k=0;k<fi1.size();k++){
+                float min = 100000.0f;
+                int ind = 0;
+                for(int i=0;i<FinalControlPoints.size();i++){                
+                    if( dist(fi1[k],FinalControlPoints[i]) < min ){
+                        min = dist(fi1[k],FinalControlPoints[i]);
+                        ind = i;
+                    }
+                }    
+                fi1[k] = FinalControlPoints[ind];                
+            }*/
+
+
+            /*
+            sort(fi1.begin(),fi1.end(),cmpx);
+
+            for(int k=0;k<fi1.size();k++){
+                float min = 100000.0f;
+                int ind = 0;
+                for(int i=0;i<FinalControlPoints.size();i++){                
+                    if( dist(fi1[k],FinalControlPoints[i]) < min ){
+                        min = dist(fi1[k],FinalControlPoints[i]);
+                        ind = i;
+                    }
+                }    
+                fi1[k] = FinalControlPoints[ind];                
+            }
+            for(int i=0;i<(fi1.size());i++){
+                if(!isCollinear(fi1[0],fi1[3],fi1[i])){
+                    isTracking = false;                    
+                
+                
+            }
+            if( isTracking ){
+                for(int i=0;i<(fi1.size()-1);i++){
+                    line(frame,fi1[i],fi1[i+1],Scalar(0,255,0),10);        
+                }
+            }
+            */
+            
+            //line(frame,p[0],p[1],Scalar(0,255,0),10);
+            //line(frame,p[2],p[3],Scalar(0,255,0),10);
+            
+            //cout << CPs.size() << endl;
+        }
+        else{
+            // calculo de referencias puntos de los rectangulos  
+            
+            
+            vector<Point2f> ref1=FinalControlPoints;
+            vector<Point2f> ref2=FinalControlPoints;
+
+
+            
+            sort(ref1.begin(),ref1.end(),cmpx);
+            p[2] = ref1[0]; // punto de interes
+            p[1] = ref1[ref1.size()-1];
+
+            sort(ref2.begin(),ref2.end(),cmpy);
+            p[0] = ref2[0];
+            p[3] = ref2[ref2.size()-1];   
+            
+
+            /*
+            Point2f zero = Point2f(0.0,0.0);
+            float min = 100000.0f;
+            int id = 0;
+            for(int i = 0; i < CPs.size(); i++){
+                if( dist( zero,CPs[i] ) < min ){
+                    min = dist( zero,CPs[i] );
+                    id = i;
+                }
+            }
+
+            p[2] = CPs[id];
+            float max = 0;
+            for(int i = 0; i < CPs.size(); i++){
+                if( dist( p[2],CPs[i] ) > max ){
+                    max = dist( zero,CPs[i] );
+                    id = i;
+                }
+            }
+
+            p[3] = FinalControlPoints[id];*/
+
+            /*
+            float aMax = 0;
+            vector<int> f;
+            for(int i = 0; i < FinalControlPoints.size(); i++){
+                if( area(p[2],p[3],FinalControlPoints[i]) > aMax){
+                    aMax = area(p[2],p[3],FinalControlPoints[i]);
+                    f.push_back(id);
+                }
+            }
+
+            
+            float a = FinalControlPoints[f[f.size()-1]].y;
+            float b = FinalControlPoints[f[f.size()-2]].y;
+            if(a>b){
+                p[0] = FinalControlPoints[f.size()-2];
+                p[1] = FinalControlPoints[f.size()-1];
+            }else{
+                p[0] = FinalControlPoints[f.size()-1];
+                p[1] = FinalControlPoints[f.size()-2];
+            }
+            */
+
+            
+            // siempre sera p[2] y p[0]  los puntos de interes  p[2] el menor en 2x" y p[0] el menor en "y"
+
+            //circle(frame,p[0],1,Scalar(153, 102, 0),3,8);
+            //circle(frame,p[2],1,Scalar(153, 102, 0),3,8);
+
+            
+            for(int i = 0; i < FinalControlPoints.size(); i++){
+                if( isCollinear(p[3],p[2],FinalControlPoints[i]) ){ // importa el orden punto de referencoa el p[2]!!
+                    col1.push_back(FinalControlPoints[i]);
+                    //circle(frame,CPs[i],1,Scalar(153, 102, 0),3,8);
+                }
+            }
+            sort(col1.begin(),col1.end(),cmpy);
+
+            
+            for(int i = 0; i < CPs.size(); i++){
+                if( isCollinear(p[0],p[1],FinalControlPoints[i]) ){ // importa el orden punto de referencoa el p[2]!!
+                    col2.push_back(FinalControlPoints[i]);
+                    //circle(frame,CPs[i],1,Scalar(153, 102, 0),3,8);
+                }
+            }
+            sort(col2.begin(),col2.end(),cmpy);
+                    
+            for(int k = 0; k < col1.size(); k++ ){        
+                line(frame,col1[k],col2[k],Scalar(0,255,0),10);                                
+            }
+
+             for(int k = 0; k < col1.size()-1; k++ ){
+                line(frame,col1[k+1],col2[k],Scalar(0,255,0),10); 
+             }
+            
+
+            circle(frame,p[0],1,Scalar(153, 0, 0),3,8);
+            circle(frame,p[2],1,Scalar(153, 0, 0),3,8);
+            circle(frame,p[1],1,Scalar(153, 0, 0),3,8);
+            circle(frame,p[3],1,Scalar(153, 0, 0),3,8);
+
+            col1.clear();
+            col2.clear();
+
+
+             /*
+            circle(frame,p[2],1,Scalar(153, 102, 0),3,8);
+            circle(frame,p[3],1,Scalar(153, 102, 0),3,8);
+            */
+          
+        }
+            
+    }
+
+    
+
+
+
+    /*
     if(isTracking){
         std::vector<float> distances;
         for(int k = 0; k < numTrackedItems;k++){
@@ -232,6 +486,7 @@ void EllipsisDetection(){
             distances.push_back(dist(trackedPoints[k],CPs[index]));
             trackedPoints[k] = CPs[index]; // Actualizamos la posicion de los puntos
         }
+
         bool isCorrect = true;
         float dmean = 0.0;
         float dstddev = 0.0;
@@ -261,8 +516,6 @@ void EllipsisDetection(){
             isCorrect = false;
         }
 
-
-
         if(!isCorrect){
             cout << "Couldnt keep tracking\n";
             isTracking = false;
@@ -280,6 +533,9 @@ void EllipsisDetection(){
     if(isTracking)
         for(int i = 0; i < numTrackedItems; i++)
             circle(frame, trackedPoints[i],1,Scalar(0,0,255),3,8);
+
+    */
+
 
     /**
 
@@ -332,12 +588,16 @@ void EllipsisDetection(){
 int main(){
 
     cv::VideoCapture cap(video_path);
-    //cv::VideoCapture cap(0); // --> For video Capture
+    
+    /*
+        cv::VideoCapture cap(0); // --> For video Capture
+    */
 
     if(!cap.isOpened()){
         cout << "Cannot open the video file" << endl;
         return -1;
     }
+    
 
     double count = cap.get(CV_CAP_PROP_FRAME_COUNT); //get the frame count
 
@@ -374,10 +634,10 @@ int main(){
 
     while(finish)
     {
-        cap.set(1,r);
-        cap.read(frame);
+        //cap.set(1,r);
+        //cap.read(frame);
         
-        //cap >> frame; // --> For video Capture
+        cap >> frame; // --> For video Capture
 
         cout << "===========================\n";
         cout << "Frame No " << r <<endl;
@@ -418,12 +678,13 @@ int main(){
             finish = 0;
             break;
         }
-
+        
+        /*
         //For Video Capture
-        //int key = waitKey(10);
-        //if(key == 27)
-        //    break;
-
+        int key = waitKey(10);
+        if(key == 27)
+            break;
+        */
     }
 
     cap.release();
