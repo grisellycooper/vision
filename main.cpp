@@ -4,6 +4,8 @@ g++ -std=c++11 main.cpp addFunctions.cpp `pkg-config opencv --cflags --libs` -o 
 
 #include "includes.h"
 
+//#define VIDEO
+
 //Handles for Frames
 cv::Mat frame; //Matriz fuente
 cv::Mat gray;
@@ -16,6 +18,8 @@ std::vector<Point2f> ControlPoints;
 
 int numTrackedItems = 20;
 bool isTracking = false;
+unsigned int num_Frames;
+unsigned int num_TrackedFrames;
 
 /**Variables for Global Threshold**/
 bool playVideo =true;
@@ -375,10 +379,12 @@ void EllipsisDetection(){
 
     CPs.clear();
     CPs = tmpCPs;
+    /**
     for(int i = 0; i < CPs.size();i++){
         //circle(Ellipsis,CPs[i],1,Scalar(0,0,255),3,8);
         circle(frame,CPs[i],5,Scalar(255,255,0),2,8);
     }
+    **/
     //=============================
     // Fin mediana
     //=============================
@@ -409,8 +415,10 @@ void Track(){
         float dstddev = StandarDesviation(distances);
 
         //Aumentar validaciones en esta zona
-        if(dstddev >1.5f)
+        if(dstddev >1.5f){
             isCorrect = false;
+        }
+        num_TrackedFrames++;
 
         //Si no es correcto el mandar señal para tratar de capturar el tracking
         if(!isCorrect){
@@ -442,6 +450,7 @@ void Track(){
             }
 
             isTracking = true;
+            num_TrackedFrames++;
         }
     }
 
@@ -460,8 +469,11 @@ void Track(){
 
 int main(){
 
+#ifndef VIDEO
     cv::VideoCapture cap(video_path);
-    //cv::VideoCapture cap(0); // --> For video Capture
+#else
+    cv::VideoCapture cap(0); // --> For video Capture
+#endif
 
     if(!cap.isOpened()){
         cout << "Cannot open the video file" << endl;
@@ -479,15 +491,26 @@ int main(){
     resizeWindow(WindowRGB,800,600);
 
 
+
     int r = 0;
     bool finish = 1;
 
+    
+    double elapsed_seconds = 0.0;
+    double time = 0.0;
+    num_Frames = 1; // Para que empiece a trackear hasta el segundo conteo
+    num_TrackedFrames = 1;
+
     while(finish)
     {
+        auto start = std::chrono::system_clock::now();
+
+        #ifndef VIDEO
         cap.set(1,r);
         cap.read(frame);
-        
-        //cap >> frame; // --> For video Capture
+        #else
+        cap >> frame; // --> For video Capture
+        #endif
 
         cout << "===========================\n";
         cout << "Frame No " << r <<endl;
@@ -501,10 +524,26 @@ int main(){
 
         Track();
 
+        
+        auto end = std::chrono::system_clock::now();
+        elapsed_seconds += std::chrono::duration_cast<std::chrono::duration<double> >(end - start).count();
+
+        if(num_Frames % 30 == 0){
+            elapsed_seconds *= 1000.0;
+            time = elapsed_seconds / 30.0;
+
+            cout << "the time was: " << elapsed_seconds << endl;
+            elapsed_seconds = 0.0;
+        }
+        cout << "Tracked Num Frames: " << num_TrackedFrames << " Total Frames: "<<num_Frames<<endl; 
+        putText(frame,to_string((float) num_TrackedFrames / num_Frames * 100.0) + " %",Point(400,430),FONT_HERSHEY_SIMPLEX,1,Scalar(200,200,0),2,CV_AA);
+        putText(frame,to_string(time) + " ms",Point(400,470),FONT_HERSHEY_SIMPLEX,1,Scalar(200,200,0),2,CV_AA);
+
         imshow(WindowName,Ellipsis);
         imshow(WindowRGB,frame);
+        num_Frames++;
         
-        
+        #ifndef VIDEO
         //----Teclas para analizar los frames
         int key = waitKey(100000);//Espera 5 seg a que se presione un key
         switch(key){
@@ -526,13 +565,13 @@ int main(){
             finish = 0;
             break;
         }
-        
-
+        #else    
         //For Video Capture
-        //int key = waitKey(10);
-        //if(key == 27)
-        //    break;
-
+        int key = waitKey(10);
+        if(key == 27)
+            break;
+        #endif
+        
     }
 
     cap.release();
