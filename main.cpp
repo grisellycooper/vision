@@ -230,8 +230,6 @@ bool FindRingPattern(vector<Point2f> &probableCPs,int num_rows,int num_cols){
                 probableCPs.clear();
                 probableCPs = tmpCPs;
 
-
-
                 return true;
 
             }
@@ -415,7 +413,7 @@ void Track(){
         float dstddev = StandarDesviation(distances);
 
         //Aumentar validaciones en esta zona
-        if(dstddev >1.5f){
+        if(dstddev >3.0f){
             isCorrect = false;
         }
         num_TrackedFrames++;
@@ -473,6 +471,7 @@ int main(){
     cv::VideoCapture cap(video_path);
 #else
     cv::VideoCapture cap(0); // --> For video Capture
+    cap.set(cv::CAP_PROP_FPS,60); // ---> Quitar esta linea
 #endif
 
     if(!cap.isOpened()){
@@ -567,7 +566,7 @@ int main(){
         }
         #else    
         //For Video Capture
-        int key = waitKey(10);
+        int key = waitKey(1);
         if(key == 27)
             break;
         #endif
