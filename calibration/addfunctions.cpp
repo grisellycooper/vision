@@ -10,6 +10,25 @@ bool findRingGridPattern(cv::Mat Input, cv::Size size, std::vector<cv::Point2f>&
     return true;
 }
 
+void calcBoardCornerPositions(cv::Size size, float squareSize, std::vector<cv::Point3f> &corners, int patternType){
+    corners.clear();
+
+    switch(patternType){
+        case CHESSBOARD:
+        case CIRCLES_GRID:
+        case RINGS_GRID:
+            for(int i = 0 ; i < size.height; i++)
+                for(int j = 0; j < size.width; j++)
+                    corners.push_back(cv::Point3f( float(j * squareSize),float(i*squareSize),0) );
+            break;
+        case ASYMMETRIC_CIRCLES_GRID:
+            for( int i = 0; i < size.height; i++ )
+                for( int j = 0; j < size.width; j++ )
+                    corners.push_back(Point3f(float((2*j + i % 2)*squareSize), float(i*squareSize), 0));
+            break;
+    }
+}
+
 bool cmpx(Point2f a,Point2f b){
     return a.x < b.x;
 }
