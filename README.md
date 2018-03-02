@@ -11,6 +11,6 @@ trabajos
 ## Paper: 
   https://docs.google.com/document/d/14BGDtmgikkoZdxH82a-Wx73cTKLJtGjVrr9a8NlC0dQ/edit?usp=sharing
 ## Slides: 
-  https://docs.google.com/presentation/d/15vRCI_-or8Sg2pxQIw13xXVTmFkZ5c0NJbHEWHDfueI/edit?usp=sharing
+  https://docs.google.com/presentation/d/1Gd5HakrHSuCsS6ZvvVpLl2J6cH-ytRSZ-FsPbMMJXnc/edit?usp=sharing
   
 
