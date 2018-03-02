@@ -3,11 +3,206 @@
 
 #include "includes.h"
 
-bool findRingGridPattern(cv::Mat Input, cv::Size size, std::vector<cv::Point2f>& points){
-    for(int i = 0 ; i < size.height; i++)
-        for(int j = 0; j < size.width;j++)
-            points.push_back(cv::Point2f(i,j));
-    return true;
+bool findRingsGridPattern(cv::Mat Input, cv::Size size, std::vector<cv::Point2f>& points, bool& isTracking){
+    // ===================
+    // PRE - FILTERS
+    // ===================
+    cv::Mat gray;
+    cv::cvtColor(Input,gray,CV_BGR2GRAY);
+    GaussianBlur(gray,gray,Size(3,3),0);
+    adaptiveThreshold(gray,gray,255,ADAPTIVE_THRESH_GAUSSIAN_C,THRESH_BINARY,41,6);
+
+    //cv::imshow("g",gray);
+
+    
+    // ===================
+    // ELLIPSIS DETECTION
+    // ===================
+    vector<vector<Point>> contours;
+    vector<Vec4i> hierachy;
+
+    findContours(gray,contours,hierachy,CV_RETR_TREE,CV_CHAIN_APPROX_SIMPLE,Point(0,0));
+
+    vector<RotatedRect>minEllipse(contours.size());
+
+    // Fitear una elipse a los contornos detectados
+    for( int i = 0; i < contours.size(); i++ ){
+        //minRect[i] = minAreaRect( Mat(contours[i]) );
+        if( contours[i].size() > 4 ){
+            minEllipse[i] = fitEllipse( Mat(contours[i]) ); }
+    }
+
+    //Filtrar las ellipses
+    cv::cvtColor(gray,gray, CV_GRAY2BGR);
+    vector<RotatedRect> selected;
+    for( int i = 0; i< contours.size(); i++ ){
+        float w = minEllipse[i].size.width;
+        float h = minEllipse[i].size.height;
+        float c_x = minEllipse[i].center.x;
+        float c_y = minEllipse[i].center.y;
+        float dif = w - h;
+        
+        if(abs(dif) < 40){ //-->>> CAMBIAR ESTE PARAMETRO PARA FILTRAR LAS ELIPSES
+            if(hierachy[i][2] != -1){ // Si el Contour tiene Hijo que hijo sea unico
+                int child_index = hierachy[i][2];
+                if(hierachy[child_index][0] == -1 && hierachy[child_index][1] == -1 && hierachy[child_index][2] == -1){
+                    selected.push_back(minEllipse[i]);
+                    selected.push_back(minEllipse[child_index]);
+                    ellipse( gray, minEllipse[i], Scalar(0,0,255), 1, 8 );
+                    ellipse( gray, minEllipse[child_index], Scalar(0,0,255), 1, 8 );          
+                }
+            }
+        }
+    }
+
+    //Como minimo debemos capturar 40 elipses para continuar
+    cv::imshow(windowGray,gray);
+    if(selected.size() < 40) return false;
+
+    //cv::imshow("g",gray);
+
+    //Extraemos los centros de todas las elipses Seleccionadas
+    //cout << "Number Selected Ellipsises: " << selected.size() << endl;
+    vector<Point2f> centers;
+    for( int i = 0; i < selected.size(); i++ ){
+        centers.push_back(selected[i].center);      
+    }
+
+    //Eliminamos Duplicados y nos quedamos con el promedio de Centros similares('permanezcan a un conjunto de elipses')
+    vector<Point2f> CPs;
+    CPs = getControlPoints(centers);
+    for(int i = 0; i < CPs.size();i++)
+        circle(gray,CPs[i],1,Scalar(0,0,255),3,8);
+
+    cv::imshow(windowGray,gray);
+    if(CPs.size() < 20) return false;
+
+
+    //cv::imshow(windowGray,gray);
+
+    //=============================
+    // Calculating the mediana
+    //=============================
+    vector<Point2f> tmpCPs;
+    vector<Point2f> c1 = CPs;
+    vector<Point2f> c2 = CPs;
+    sort(c1.begin(),c1.end(),cmpx);
+    sort(c2.begin(),c2.end(),cmpy);
+
+    int n = c1.size()/2;
+    float xm = c1[ n ].x;
+    float ym = c2[ n ].y; 
+
+    // Esta parte debe ayudar a validar nuestros PC
+    // Como maximo deberiamos tener 20
+    // Ademas debe ordenarlos de la sgte manera fila por fila, columna por columna
+    // Debe retornar true si se cumplen los requisitos
+    int r;
+    for(r = 1; r < 200; r++){
+        int count = 0;
+        for(int i = 0; i < CPs.size(); i++){
+            if(dist(Point2f(xm,ym),CPs[i]) < r)
+                count++;
+        }
+        //================================================
+        // Hace una verificacion fuerte de 20 elementos!!!!
+        //================================================
+        if(count >= 20){
+            break;
+        }
+            
+    }
+
+    //Displaying the range Circles
+    int padding = 30;
+    for(int i = 0; i < CPs.size(); i++)
+        if(dist(Point2f(xm,ym),CPs[i]) < r +padding)
+            tmpCPs.push_back(CPs[i]);
+
+    //cout << "Filtered Control Points(Median): "<< tmpCPs.size() <<endl;
+
+    CPs.clear();
+    CPs = tmpCPs;
+
+
+    for(int i = 0; i < CPs.size();i++){
+        circle(gray,CPs[i],5,Scalar(255,0,0),3,8);
+    }
+    
+    cv::imshow(windowGray,gray);
+    if(CPs.size() < 20) return false;
+
+    
+
+    // ===========================================
+    // ORDERING AND SETTINGS POINTS ( Tracking )
+    // ===========================================
+    std::vector<Point2f> trackedPoints;
+    int numTrackedItems = 20;
+
+    /**
+    if(isTracking){
+        std::vector<float> distances;
+        for(int k = 0; k < numTrackedItems;k++){
+            Point2f tmp = trackedPoints[k];
+            float min = 100000.0f;
+            int index = 0;
+            for(int i = 0; i < CPs.size(); i++){
+                if( min > dist(trackedPoints[k],CPs[i]) ){
+                    min = dist(trackedPoints[k],CPs[i]);
+                    index = i;
+                }
+            }
+            distances.push_back(dist(trackedPoints[k],CPs[index]));
+            trackedPoints[k] = CPs[index]; // Actualizamos la posicion de los puntos
+        }
+        bool isCorrect = true;
+
+        float dstddev = StandarDesviation(distances);
+
+        //Aumentar validaciones en esta zona
+        if(dstddev >3.0f){
+            isCorrect = false;
+        }
+
+        //Si no es correcto el mandar señal para tratar de capturar el tracking
+        if(!isCorrect){
+            cout << "Couldnt keep tracking\n";
+            isTracking = false;
+        }
+
+    }
+    **/
+    isTracking = false;
+    if(!isTracking){
+    //else{
+        //cout << "Start Tracking\n";
+        // Buscamos encontrar el patron, devolvemos solo el numero correspondiente de nodos
+        // Ademas Ordenamos los nodos, primero por fila, luego por columna
+        bool patternWasFound = FindRingPattern(CPs,4,5);
+        //patternWasFound = false;
+
+        //Esta parte del codigo debe enviar 20 puntos Ordenados y en grilla hacia TrackedPoints
+        //En cualquier otro caso debe pasar al siguiente frame y tratar otra vez
+        //El ordenamiento a pasar es el siguiente
+
+        if(patternWasFound){
+            trackedPoints.clear();
+            for(int i = 0; i < numTrackedItems; i++){
+                trackedPoints.push_back(CPs[i]);
+                circle(gray,CPs[i],5,Scalar(255,0,0),3,8);
+            }
+
+            isTracking = true;
+        }
+    }
+
+    cv::imshow(windowGray,gray);
+
+    // Copiamos el vector a points que seran nuestros CPs
+    points = trackedPoints;
+
+    return isTracking;
 }
 
 void calcBoardCornerPositions(cv::Size size, float squareSize, std::vector<cv::Point3f> &corners, int patternType){
@@ -56,6 +251,167 @@ double computeReprojectionErrors(const std::vector< std::vector<cv::Point3f> >& 
 
 }
 
+// RING PATTERN DETECTION ADDITIONAL FUNCTIONS
+vector<Point2f> getControlPoints(const vector<Point2f> & centers){
+    std::vector<Point2f> v;
+    std::vector<int> alreadyRegistered;
+    float t = 3.0f; // Valor de Desviacion Maxima
+    for(int i = 0; i < centers.size();i++)
+        for(int j= 0; j < centers.size(); j++){
+            if(i != j && dist(centers[i],centers[j]) < t &&
+            (std::find(alreadyRegistered.begin(), alreadyRegistered.end(),i) == alreadyRegistered.end() ||
+            std::find(alreadyRegistered.begin(), alreadyRegistered.end(),j) == alreadyRegistered.end()) //&&
+            //v.size() <= 20)
+            )
+            {
+                // Aqui va el promedio de ambos
+                float d_x = centers[i].x + centers[j].x;
+                float d_y = centers[i].y + centers[j].y;
+                v.push_back(Point2f(d_x/2.0f,d_y/2.0f));
+
+                //Registramos los centros para no repetirlos
+                alreadyRegistered.push_back(i);
+                alreadyRegistered.push_back(j);
+            }
+        }
+
+    return v;    
+}
+
+//=============================================================
+//================ FUNCION SUPERIMPORTANTE ====================
+//=============================================================
+// Si la funcion tiene exito devulve true, mas la modificacion del vector de entrada
+// Con el numero de filas y columnas especificadas
+bool isColinear(Vec4f line, Point2f point){
+    // Evaluamos para x e y
+    float tx = (point.x - line[2]) / line[0];
+    float ty = (point.y - line[3]) / line[1];
+
+    if(abs(tx-ty) < 5.0f) return true;
+    return false;
+}
+
+bool FindRingPattern(vector<Point2f> &probableCPs,int num_rows,int num_cols){
+    int n = probableCPs.size();
+    std::vector<Vec4f> lines;
+    // Generamos todas las Combinaciones de "Lineas" en grupos de 5 posibles
+    // Es 5 xq seleccionamos las lineas
+    std::vector< std::vector<int> > combinations = GenerateCombinations(probableCPs.size(),num_cols);
+
+    //Aprovechamos las lineas temporales y Selecionamos las que tengan Baja Desviacion
+    std::vector<Vec4f> preSelectedLines;
+    std::vector<std::vector<int> > combination_preSelectedLines;
+    for(int i = 0; i < combinations.size();i++){
+        std::vector<Point2f> tmpPoints(num_cols);
+        Vec4f tmpLine;
+        for(int j = 0; j < num_cols; j++){
+            tmpPoints[j] = probableCPs[ combinations[i][j] ];
+        }
+        fitLine(tmpPoints,tmpLine,CV_DIST_L2,0,0.01,0.01);
+        // Extraction of Features
+        //Le damos forma a los valores vectoriales que nos devuelve fitline
+        // r = a + r*b --> p0 punto de paso, v vector director normalizado
+        float vx = tmpLine[0],vy = tmpLine[1], x0 = tmpLine[2],y0 = tmpLine[3];
+        Point2f a = Point2f(x0,y0), b = Point2f(vx,vy);
+
+        float m = 80.0;
+
+        std::vector<float> distances;
+        for(int k = 0; k < num_cols; k++){
+            //Calculamos la distancia del punto a la recta y almacenamos para el calculo de la desviacion
+            float t = ( tmpPoints[k].dot(b) - a.dot(b) ) / (cv::norm(b) * cv::norm(b));
+            float dist = cv::norm(tmpPoints[k] - (a + t * b));
+            distances.push_back(dist);
+        }
+
+        float stddev = StandarDesviation(distances);
+
+        //Si el error de la linea no es mucho. Seleccionamos la linea
+        if(stddev < 0.5f){
+            preSelectedLines.push_back(tmpLine);
+            //Guardamos la Combinacion
+            combination_preSelectedLines.push_back(combinations[i]);
+        }
+
+    }
+
+    // Apply some filters here to verify line selection
+    // Then Order Points and Store in CPs(Hard verification of only 20 Ordered and Aligned Control Points)
+    // Acordemonos que ya seleccionamos solo lineas con 5 puntos
+    if(preSelectedLines.size() == 4){
+        //Tenemos que ordenar las lineas. (Recordemos que son lineas paralelas)
+        //Primero verificamos la pendiente
+
+        //LINE ORDERING
+            //Recordemos la grilla que presenta openCV 
+            // -------> x+
+            // |
+            // |
+            // y+
+
+            Vec4f Line = preSelectedLines[0];
+            float vx = Line[0],vy = Line[1], x0 = Line[2],y0 = Line[3];
+            //Pendiente
+            float slope = vy/vx;
+            if(abs(slope) < 5.0f){ //Evaluamos las pendientes de casi 80 grados (Revisar esta funcion)
+                std::vector<float> y_intersection(4);
+                //Calcular el punto de interseccion por el eje y
+                for(int i = 0; i < 4; i++){
+                    Vec4f tmpLine = preSelectedLines[0];
+                    float vx = tmpLine[0],vy = tmpLine[1], x0 = tmpLine[2],y0 = tmpLine[3];
+
+                    float t = -x0 / vx;
+                    float y = y0 + t*vy;
+
+                    y_intersection[i] = y;
+                }
+
+                //Realizamos un bubble sort en base a las intersecciones con el eje y
+                //ordenamiento por burbuja
+                bool swapp = true;
+                while(swapp)
+                {
+                    swapp = false;
+                    for (int i = 0; i < preSelectedLines.size()-1; i++)
+                    {
+                        if (y_intersection[i] > y_intersection[i+1] ){
+                            //Cambiamos en todos nuestros vectores
+                            std::swap(y_intersection[i],y_intersection[i+1]);
+                            std::swap(preSelectedLines[i],preSelectedLines[i+1]);
+                            std::swap(combination_preSelectedLines[i],combination_preSelectedLines[i+1]);
+                            swapp = true;
+                        }
+                    }
+                }// Fin del ordenamiento
+
+                // Para Cada Linea obtener los CP segun la combinacion y ordenarlos por el eje X
+                // Obtenemos los puntos desde el CP
+
+                std::vector<Point2f> tmpCPs;
+                for(int i = 0; i < num_rows; i++){
+                    std::vector<Point2f> tmpCenters(num_cols);
+                    for(int j = 0; j < num_cols; j++){
+                        tmpCenters[j] = probableCPs[ combination_preSelectedLines[i][j] ];
+                    }
+                    sort(tmpCenters.begin(), tmpCenters.end(),cmpx);
+                    for(int j = 0; j < num_cols; j++){
+                        tmpCPs.push_back(tmpCenters[j]);
+                    }
+                }
+
+                probableCPs.clear();
+                probableCPs = tmpCPs;
+
+                return true;
+            }      
+    }
+    return false;
+}// fin de funcion importante
+
+
+// OTHER FUNCTIONS
+
 bool cmpx(Point2f a,Point2f b){
     return a.x < b.x;
 }
@@ -94,4 +450,39 @@ float StandarDesviation(const std::vector<float> & values ){
     //std::cout << "Mean: " << dmean << "   StdDev: " << dstddev << std::endl;
 
     return dstddev;
+}
+
+void printCombination(std::vector< std::vector<int> >& v, int arr[], int n, int r)
+{
+    std::vector<int> data(r);
+
+    combinationUtil(v, arr, data, 0, n-1, 0, r);
+}
+ 
+void combinationUtil(std::vector< std::vector<int> >& v, int arr[], std::vector<int> &data, int start, int end,
+                     int index, int r)
+{
+    if (index == r)
+    {
+        v.push_back(data);
+        return;
+    }
+ 
+    for (int i=start; i<=end && end-i+1 >= r-index; i++)
+    {
+        data[index] = arr[i];
+        combinationUtil(v, arr, data, i+1, end, index+1, r);
+    }
+}
+
+std::vector< std::vector<int> > GenerateCombinations(int n, int r){
+    std::vector< std::vector<int> > v;
+
+    int arr[n];
+    for(int i = 0; i < n; i++)
+        arr[i] = i;
+
+    printCombination(v, arr, n, r);
+
+    return v;
 }
