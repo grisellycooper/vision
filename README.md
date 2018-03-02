@@ -9,7 +9,7 @@ trabajos
 
 ## Proyecto:
 ## Paper: 
-  https://docs.google.com/document/d/1S92Ffyeb2UmR_JSJ42gajm01b0Q4R5q_E67RBiy3nh0/edit?usp=sharing
+  https://docs.google.com/document/d/14BGDtmgikkoZdxH82a-Wx73cTKLJtGjVrr9a8NlC0dQ/edit?usp=sharing
 ## Slides: 
   https://docs.google.com/presentation/d/15vRCI_-or8Sg2pxQIw13xXVTmFkZ5c0NJbHEWHDfueI/edit?usp=sharing
   
