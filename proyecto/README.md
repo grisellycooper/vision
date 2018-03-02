@@ -85,6 +85,14 @@ done
 bash test.sh
 
 // OJO TENER LA CARPETA DATA EN LA CARPETA /build
+// Ademas si se cuenta con anaconda.. Desactivar el PATH que se escribe automaticamente al instalar
+
+si sale echo $PATH  -- > /something/anaconda3/lib..
+
+cambiar y actualizar el ~/.bashrc y eliminar dicho PATH
+
+luego borrar el build y volver a compilar (tb reiniciar la terminal)
+actualizar con $:source ~/.bashrc
 
 
 
