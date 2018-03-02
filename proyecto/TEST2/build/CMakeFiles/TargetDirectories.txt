@@ -1,0 +1,4 @@
+/home/maxito911/Desktop/CompVision/vision/proyecto/TEST2/build/CMakeFiles/edit_cache.dir
+/home/maxito911/Desktop/CompVision/vision/proyecto/TEST2/build/CMakeFiles/rebuild_cache.dir
+/home/maxito911/Desktop/CompVision/vision/proyecto/TEST2/build/CMakeFiles/nearest_neighbors.dir
+/home/maxito911/Desktop/CompVision/vision/proyecto/TEST2/build/CMakeFiles/build_tree.dir
