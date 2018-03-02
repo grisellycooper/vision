@@ -4,6 +4,9 @@
 sudo add-apt-repository -y ppa:webupd8team/java && sudo apt update && sudo apt -y install oracle-java8-installer
 
 // Pre Requisitos Universales
+sudo apt -y install g++ cmake cmake-gui doxygen mpi-default-dev openmpi-bin openmpi-common libusb-1.0-0-dev libqhull* libusb-dev libgtest-dev
+sudo apt -y install git-core freeglut3-dev pkg-config build-essential libxmu-dev libxi-dev libphonon-dev libphonon-dev phonon-backend-gstreamer
+sudo apt -y install phonon-backend-vlc graphviz mono-complete qt-sdk libflann-dev
 
 // Algunas Dependencias
 sudo apt-get install libeigen3-dev
