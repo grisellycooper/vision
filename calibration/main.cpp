@@ -15,12 +15,13 @@ g++ -std=c++11 -O3 main.cpp addfunctions.cpp `pkg-config opencv --cflags --libs`
 /** Global Variables **/
 cv::Mat frame;
 int patternType = CHESSBOARD; // Tipo de Patrón empleado (Ver Enum en includes)
+//int patternType = ASYMMETRIC_CIRCLES_GRID; // Tipo de Patrón empleado (Ver Enum en includes)
 cv::Size imgPixelSize = Size(640,480); // Tamaño de la imagen
-cv::Size patternSize = Size(6,9); // Varia dependiendo del tipo de patron que usamos
+cv::Size patternSize[] = {Size(6,9),Size(4,5),Size(4,11),Size(8,12)}; // Varia dependiendo del tipo de patron que usamos
 float squareSizes[] = {0.02315,0.02315,0.02315,0.02315}; // Separacion Real(en m) entre los puntos detectados
 // el Size(x,y) .. x: numero de filas, y: numero de columnas
 int noImages = 10; // Number of Images used for calibration
-int sample_FPS = 50; // trata de tomar una muestra cierto FPS
+int sample_FPS = 40; // trata de tomar una muestra cierto FPS
 int mode = 0;
 
 std::vector< std::vector<cv::Point3f> > objPoints; // Puntos de nuestro objeto(Patron de calibracion)
@@ -51,10 +52,11 @@ int main(){
     namedWindow(windowName,0);
     resizeWindow(windowName,1000,1000);
 
-    double rms;
+    double rms, totAvgErr;
     cv::Mat cameraMatrix = cv::Mat::eye(3,3,CV_64F); // Matriz para guardar la camera Intrinsics
     cv::Mat distCoeffs = cv::Mat::zeros(8, 1,CV_64F); // Aqui guardamos los coeficientes de Distorsion
     std::vector<cv::Mat> rvecs,tvecs; //Vectores de rotacion y de traslacion para para frame
+    std::vector<float> reprojErrors; // Vector que calcula los errores para cada punto en todos los frames
 
     int key;
     int counter = 0;
@@ -81,7 +83,7 @@ int main(){
     		case DETECT_MODE:{
     			//Esta funcion llena nuestro objPoints vector of vectors, suponiendo una superficie plana
 	    		objPoints.resize(1);
-				calcBoardCornerPositions(patternSize,squareSizes[CHESSBOARD],objPoints[0],patternType);
+				calcBoardCornerPositions(patternSize[patternType],squareSizes[patternType],objPoints[0],patternType);
 				objPoints.resize(noImages,objPoints[0]);
 
 	    		bool found = false;
@@ -90,10 +92,16 @@ int main(){
 
 			    switch(patternType){
 			    	case CHESSBOARD:
-			    		found = cv::findChessboardCorners(frame, patternSize,PointBuffer);
+			    		found = cv::findChessboardCorners(frame, patternSize[CHESSBOARD],PointBuffer);
 			    		break;
+                    case CIRCLES_GRID:
+                        found = cv::findCirclesGrid(frame,patternSize[CIRCLES_GRID],PointBuffer);
+                        break;
+                    case ASYMMETRIC_CIRCLES_GRID:
+                        found = cv::findCirclesGrid(frame,patternSize[ASYMMETRIC_CIRCLES_GRID],PointBuffer,CALIB_CB_ASYMMETRIC_GRID);
+                        break;
 			    	case RINGS_GRID:
-			    		found = findRingGridPattern(frame,patternSize,PointBuffer);
+			    		found = findRingGridPattern(frame,patternSize[RINGS_GRID],PointBuffer);
 			    		break;
 			    	default:
 			    		found = false;
@@ -107,7 +115,7 @@ int main(){
 		    			cv::cvtColor(frame, gray, cv::COLOR_BGR2GRAY);
 		    			cv::cornerSubPix(gray, PointBuffer, Size(11,11), Size(-1,-1),criteria);
 		    		}
-		    		cv::drawChessboardCorners(frame, patternSize, PointBuffer,found);
+		    		cv::drawChessboardCorners(frame, patternSize[patternType], PointBuffer,found);
 			    		//Agregamos el patrón encontrado a nuestros imgPoints
                     if(counter % sample_FPS == 0){
 		    		    imgPoints.push_back(PointBuffer);
@@ -129,6 +137,10 @@ int main(){
     			cout << "El error de reproyeccion obtenido fue de " << rms << endl;
                 cout << "Matriz Intrinseca" << endl << cameraMatrix << endl;
                 cout << "Coeficientes de distorsion" << endl << distCoeffs << endl;
+
+                totAvgErr = computeReprojectionErrors(objPoints,imgPoints,rvecs, tvecs,cameraMatrix,distCoeffs, reprojErrors);
+                cout << "Average Reprojection Error: " << totAvgErr << endl;
+
     			cout << "Empezando la InDistorsion \n";
                 mode++;
                 break;

@@ -29,6 +29,33 @@ void calcBoardCornerPositions(cv::Size size, float squareSize, std::vector<cv::P
     }
 }
 
+double computeReprojectionErrors(const std::vector< std::vector<cv::Point3f> >& objectPoints,
+                                    const std::vector< std::vector<cv::Point2f> >& imagePoints,
+                                    const std::vector<cv::Mat>& rvecs,const std::vector<cv::Mat>& tvecs, 
+                                    const cv::Mat& cameraMatrix, const cv::Mat& distCoeffs,
+                                    std::vector<float> & perFrameErrors){
+
+    std::vector<cv::Point2f> imagePoints2;
+    size_t totalPoints = 0;
+    double totalErr = 0, err;
+    perFrameErrors.resize(objectPoints.size());
+
+    for(size_t i = 0; i < objectPoints.size(); ++i ){
+
+        cv::projectPoints(objectPoints[i], rvecs[i], tvecs[i], cameraMatrix, distCoeffs, imagePoints2);
+
+        err = norm(imagePoints[i], imagePoints2, NORM_L2);
+
+        size_t n = objectPoints[i].size();
+        perFrameErrors[i] = (float) std::sqrt(err*err/n);
+        totalErr        += err*err;
+        totalPoints     += n;
+    }
+
+    return std::sqrt(totalErr/totalPoints);
+
+}
+
 bool cmpx(Point2f a,Point2f b){
     return a.x < b.x;
 }
