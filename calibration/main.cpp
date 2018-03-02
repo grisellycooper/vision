@@ -5,10 +5,13 @@ g++ -std=c++11 -O3 main.cpp addfunctions.cpp `pkg-config opencv --cflags --libs`
 #include "includes.h"
 
 //#define video_path "videos/calibration_mslifecam.avi"
-#define video_path "../videos/calibration_ps3eyecam.avi"
-//#define video_path "videos/Kinect2_rgb.avi"
-//#define video_path "videos/realsense_Depth.avi"
-//#define video_path "videos/realsense_RGB.avi"
+//#define video_path "../videos/calibration_ps3eyecam.avi"
+
+#define video_path "../videos/rings_wilber.webm"
+
+//#define video_path "../videos/chessboard_livecam.webm"
+//#define video_path "../videos/rings_livecam.webm"
+
 
 
 
@@ -59,7 +62,14 @@ int main(){
     std::vector<float> reprojErrors; // Vector que calcula los errores para cada punto en todos los frames
 
     bool isTracking = false; // Variable que ayuda a FindRingPatterns
-    std::vector<cv::Point2f> oldPoints;
+    std::vector<cv::Point2f> oldPoints; // Punto usados para el Tracking en RingGrid
+    std::vector<float> avgColinearityPreCalibrated;
+    std::vector<float> avgColinearity;
+
+    double elapsed_seconds = 0.0; // Para medir el tiempo
+    double time = 0.0;
+    cout << "Empezando Captura\n";
+    auto start = std::chrono::system_clock::now();
 
     int key;
     int counter = 0;
@@ -67,6 +77,8 @@ int main(){
 
     	//Capturamos un frame O.o!
     	cap >> frame;
+        if(frame.empty())
+            break;
 
     	// El programa correra haciendo uso de diferentes modos
 
@@ -121,6 +133,9 @@ int main(){
 		    			cv::cvtColor(frame, gray, cv::COLOR_BGR2GRAY);
 		    			cv::cornerSubPix(gray, PointBuffer, Size(11,11), Size(-1,-1),criteria);
 		    		}
+
+                    avgColinearityPreCalibrated.push_back( getAvgColinearityFromVector(PointBuffer, patternSize[patternType]));
+
 		    		cv::drawChessboardCorners(frame, patternSize[patternType], PointBuffer,found);
 			    		//Agregamos el patrón encontrado a nuestros imgPoints
                     if(counter % sample_FPS == 0){
@@ -139,6 +154,10 @@ int main(){
     		}
 
     		case CALIBRATION_MODE:{
+                auto end = std::chrono::system_clock::now();
+                elapsed_seconds += std::chrono::duration_cast<std::chrono::duration<double> >(end - start).count();
+                cout << "Captura Finalizada. Tiempo ===> " << elapsed_seconds * 1000.0 << " ms"<< endl;
+
     			rms = calibrateCamera(objPoints, imgPoints, imgPixelSize, cameraMatrix, distCoeffs, rvecs, tvecs);
     			cout << "El error de reproyeccion obtenido fue de " << rms << endl;
                 cout << "Matriz Intrinseca" << endl << cameraMatrix << endl;
@@ -155,6 +174,40 @@ int main(){
             case UNDISTORTION_MODE:{
                 cv::Mat temp = frame.clone();
                 cv::undistort(temp,frame,cameraMatrix,distCoeffs);
+
+                bool found = false;
+                std::vector<cv::Point2f> PointBuffer;
+
+                //Calculando la colinearidad
+                switch(patternType){
+                    case CHESSBOARD:
+                        found = cv::findChessboardCorners(frame, patternSize[CHESSBOARD],PointBuffer);
+                        break;
+                    case CIRCLES_GRID:
+                        found = cv::findCirclesGrid(frame,patternSize[CIRCLES_GRID],PointBuffer);
+                        break;
+                    case ASYMMETRIC_CIRCLES_GRID:
+                        found = cv::findCirclesGrid(frame,patternSize[ASYMMETRIC_CIRCLES_GRID],PointBuffer,CALIB_CB_ASYMMETRIC_GRID);
+                        break;
+                    case RINGS_GRID:
+                        found = findRingsGridPattern(frame,patternSize[RINGS_GRID],PointBuffer,isTracking,oldPoints);
+                        if(isTracking)
+                            oldPoints = PointBuffer;
+
+                        break;
+                    default:
+                        found = false;
+                        break;
+                }
+
+                if(found){
+                    avgColinearity.push_back( getAvgColinearityFromVector(PointBuffer, patternSize[patternType]));
+                    cv::drawChessboardCorners(frame, patternSize[patternType], PointBuffer,found);
+                    if(counter % sample_FPS == 0){
+                        printAvgColinearity(avgColinearity);
+                    }
+                }
+
     			key = waitKey(1);
     			break;
     		}
@@ -168,6 +221,30 @@ int main(){
     		break;
 
     }
+
+    //Cuando termina antes de tiempo
+    if(imgPoints.size() < noImages){
+        objPoints.resize(imgPoints.size(),objPoints[0]);
+        auto end = std::chrono::system_clock::now();
+        elapsed_seconds += std::chrono::duration_cast<std::chrono::duration<double> >(end - start).count();
+        cout << "Captura Finalizada. Tiempo ===> " << elapsed_seconds * 1000.0 << " ms"<< endl;
+
+        rms = calibrateCamera(objPoints, imgPoints, imgPixelSize, cameraMatrix, distCoeffs, rvecs, tvecs);
+        cout << "El error de reproyeccion obtenido fue de " << rms << endl;
+        cout << "Matriz Intrinseca" << endl << cameraMatrix << endl;
+        cout << "Coeficientes de distorsion" << endl << distCoeffs << endl;
+
+        totAvgErr = computeReprojectionErrors(objPoints,imgPoints,rvecs, tvecs,cameraMatrix,distCoeffs, reprojErrors);
+        cout << "Average Reprojection Error: " << totAvgErr << endl;
+    }
+    cout << "========================\n";
+    cout << "Colinearidad Pre Calibracion: " << endl;
+    cout << "========================\n";
+    printAvgColinearity(avgColinearityPreCalibrated);
+    cout << "========================\n";
+    cout << "Colinearidad Calibrada: " << endl;
+    cout << "========================\n";
+    printAvgColinearity(avgColinearity);
 
     //terminando el programa
     cap.release();

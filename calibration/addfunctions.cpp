@@ -492,3 +492,59 @@ std::vector< std::vector<int> > GenerateCombinations(int n, int r){
 
     return v;
 }
+
+
+//Calculating Colinearity
+float getAvgColinearityFromVector(const std::vector<cv::Point2f>& PointBuffer, cv::Size size){
+    std::vector<float> v;
+    //First we fit a line with the size.width first points
+    for(int i = 0; i < size.height * size.width;i+= size.width){
+        std::vector<Point2f> tmpPoints(size.width);
+        Vec4f tmpLine;
+        for(int j = i; j < size.width; j++){
+            tmpPoints[j] = PointBuffer[j];
+        }
+        fitLine(tmpPoints,tmpLine,CV_DIST_L2,0,0.01,0.01);
+        // Extraction of Features
+        //Le damos forma a los valores vectoriales que nos devuelve fitline
+        // r = a + r*b --> p0 punto de paso, v vector director normalizado
+        float vx = tmpLine[0],vy = tmpLine[1], x0 = tmpLine[2],y0 = tmpLine[3];
+        Point2f a = Point2f(x0,y0), b = Point2f(vx,vy);
+
+        float m = 80.0;
+
+        std::vector<float> distances;
+        for(int k = 0; k < size.width; k++){
+            //Calculamos la distancia del punto a la recta y almacenamos para el calculo de la desviacion
+            float t = ( tmpPoints[k].dot(b) - a.dot(b) ) / (cv::norm(b) * cv::norm(b));
+            float dist = cv::norm(tmpPoints[k] - (a + t * b));
+            distances.push_back(dist);
+        }
+
+        //For each line Calculate their Standart Deviation with respect of points
+        float stddev = StandarDesviation(distances);
+        v.push_back(stddev);
+    }
+    
+
+
+    //Return their Avg Standart Deviation
+    double avgStdDeviation = 0.0;
+    for(int i = 0; i < v.size();i++)
+        avgStdDeviation += v[i];
+
+    avgStdDeviation /= v.size();
+
+    return avgStdDeviation;
+}
+
+
+
+float printAvgColinearity(const std::vector<float>& v){
+    double sum = 0.0;
+    for(int i = 0; i < v.size();i++)
+        sum += v[i];
+    cout << "La colinearidad Promedio es " << sum / v.size() << endl;
+    return sum / v.size();
+
+}

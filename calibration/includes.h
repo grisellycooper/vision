@@ -50,5 +50,9 @@ float dist(Point2f a, Point2f b);
 
 float StandarDesviation(const std::vector<float> & values );
 
+//Calcula una linea cada cierta cantidad de puntos
+float getAvgColinearityFromVector(const std::vector<cv::Point2f>& PointBuffer, cv::Size size);
+float printAvgColinearity(const std::vector<float>& v);
+
 
 #endif // INCLUDES_H
