@@ -23,7 +23,7 @@ enum Pattern{CHESSBOARD,CIRCLES_GRID,ASYMMETRIC_CIRCLES_GRID,RINGS_GRID};
 enum modes{DETECT_MODE,CALIBRATION_MODE,UNDISTORTION_MODE};
 
 //RING GRID FUNCTION
-bool findRingsGridPattern(cv::Mat Input, cv::Size size, std::vector<cv::Point2f>& points, bool& isTracking);
+bool findRingsGridPattern(cv::Mat Input, cv::Size size, std::vector<cv::Point2f>& points, bool& isTracking, std::vector<cv::Point2f>& oldPoints);
 // RING PATTERN DETECTION ADDITIONAL FUNCTIONS
 vector<Point2f> getControlPoints(const vector<Point2f> & centers);
 bool FindRingPattern(vector<Point2f> &probableCPs,int num_rows,int num_cols);

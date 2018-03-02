@@ -3,7 +3,7 @@
 
 #include "includes.h"
 
-bool findRingsGridPattern(cv::Mat Input, cv::Size size, std::vector<cv::Point2f>& points, bool& isTracking){
+bool findRingsGridPattern(cv::Mat Input, cv::Size size, std::vector<cv::Point2f>& points, bool& isTracking, std::vector<cv::Point2f>& oldPoints){
     // ===================
     // PRE - FILTERS
     // ===================
@@ -140,20 +140,21 @@ bool findRingsGridPattern(cv::Mat Input, cv::Size size, std::vector<cv::Point2f>
     std::vector<Point2f> trackedPoints;
     int numTrackedItems = 20;
 
-    /**
+    
     if(isTracking){
+        trackedPoints.resize(numTrackedItems);
         std::vector<float> distances;
         for(int k = 0; k < numTrackedItems;k++){
-            Point2f tmp = trackedPoints[k];
+            Point2f tmp = oldPoints[k]; // Aqui esta el error
             float min = 100000.0f;
             int index = 0;
             for(int i = 0; i < CPs.size(); i++){
-                if( min > dist(trackedPoints[k],CPs[i]) ){
-                    min = dist(trackedPoints[k],CPs[i]);
+                if( min > dist(oldPoints[k],CPs[i]) ){
+                    min = dist(oldPoints[k],CPs[i]);
                     index = i;
                 }
             }
-            distances.push_back(dist(trackedPoints[k],CPs[index]));
+            distances.push_back(dist(oldPoints[k],CPs[index]));
             trackedPoints[k] = CPs[index]; // Actualizamos la posicion de los puntos
         }
         bool isCorrect = true;
@@ -161,9 +162,14 @@ bool findRingsGridPattern(cv::Mat Input, cv::Size size, std::vector<cv::Point2f>
         float dstddev = StandarDesviation(distances);
 
         //Aumentar validaciones en esta zona
-        if(dstddev >3.0f){
+        if(dstddev > 3.0f)
             isCorrect = false;
-        }
+
+        //Revisar que np haya duplicados
+        for(int i = 0; i < trackedPoints.size()-1;i++)
+            for(int j = i+1; j < trackedPoints.size();j++)
+                if(trackedPoints[i] == trackedPoints[j])
+                    isCorrect = false;
 
         //Si no es correcto el mandar señal para tratar de capturar el tracking
         if(!isCorrect){
@@ -172,10 +178,10 @@ bool findRingsGridPattern(cv::Mat Input, cv::Size size, std::vector<cv::Point2f>
         }
 
     }
-    **/
-    isTracking = false;
-    if(!isTracking){
-    //else{
+    
+    //isTracking = false;
+    //if(!isTracking){
+    else{
         //cout << "Start Tracking\n";
         // Buscamos encontrar el patron, devolvemos solo el numero correspondiente de nodos
         // Ademas Ordenamos los nodos, primero por fila, luego por columna

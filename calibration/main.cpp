@@ -14,13 +14,13 @@ g++ -std=c++11 -O3 main.cpp addfunctions.cpp `pkg-config opencv --cflags --libs`
 
 /** Global Variables **/
 cv::Mat frame;
-int patternType = RINGS_GRID; // Tipo de Patrón empleado (Ver Enum en includes)
+int patternType = CHESSBOARD; // Tipo de Patrón empleado (Ver Enum en includes)
 //int patternType = ASYMMETRIC_CIRCLES_GRID; // Tipo de Patrón empleado (Ver Enum en includes)
 cv::Size imgPixelSize = Size(640,480); // Tamaño de la imagen
 cv::Size patternSize[] = {Size(6,9),Size(4,5),Size(4,11),Size(5,4)}; // Varia dependiendo del tipo de patron que usamos
 float squareSizes[] = {0.02315,0.02315,0.02315,0.04540}; // Separacion Real(en m) entre los puntos detectados
 // el Size(x,y) .. x: numero de filas, y: numero de columnas
-int noImages = 15; // Number of Images used for calibration
+int noImages = 40; // Number of Images used for calibration
 int sample_FPS = 40; // trata de tomar una muestra cierto FPS
 int mode = 0;
 
@@ -59,6 +59,7 @@ int main(){
     std::vector<float> reprojErrors; // Vector que calcula los errores para cada punto en todos los frames
 
     bool isTracking = false; // Variable que ayuda a FindRingPatterns
+    std::vector<cv::Point2f> oldPoints;
 
     int key;
     int counter = 0;
@@ -103,7 +104,10 @@ int main(){
                         found = cv::findCirclesGrid(frame,patternSize[ASYMMETRIC_CIRCLES_GRID],PointBuffer,CALIB_CB_ASYMMETRIC_GRID);
                         break;
 			    	case RINGS_GRID:
-			    		found = findRingsGridPattern(frame,patternSize[RINGS_GRID],PointBuffer,isTracking);
+			    		found = findRingsGridPattern(frame,patternSize[RINGS_GRID],PointBuffer,isTracking,oldPoints);
+                        if(isTracking)
+                            oldPoints = PointBuffer;
+
 			    		break;
 			    	default:
 			    		found = false;
