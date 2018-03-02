@@ -5,7 +5,7 @@ g++ -std=c++11 -O3 main.cpp addfunctions.cpp `pkg-config opencv --cflags --libs`
 #include "includes.h"
 
 //#define video_path "videos/calibration_mslifecam.avi"
-//#define video_path "../videos/calibration_ps3eyecam.avi"
+#define video_path "../videos/calibration_ps3eyecam.avi"
 //#define video_path "videos/Kinect2_rgb.avi"
 //#define video_path "videos/realsense_Depth.avi"
 //#define video_path "videos/realsense_RGB.avi"
@@ -14,7 +14,7 @@ g++ -std=c++11 -O3 main.cpp addfunctions.cpp `pkg-config opencv --cflags --libs`
 
 /** Global Variables **/
 cv::Mat frame;
-int patternType = CHESSBOARD; // Tipo de Patrón empleado (Ver Enum en includes)
+int patternType = RINGS_GRID; // Tipo de Patrón empleado (Ver Enum en includes)
 //int patternType = ASYMMETRIC_CIRCLES_GRID; // Tipo de Patrón empleado (Ver Enum en includes)
 cv::Size imgPixelSize = Size(640,480); // Tamaño de la imagen
 cv::Size patternSize[] = {Size(6,9),Size(4,5),Size(4,11),Size(5,4)}; // Varia dependiendo del tipo de patron que usamos
