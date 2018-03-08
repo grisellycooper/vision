@@ -98,7 +98,9 @@ actualizar con $:source ~/.bashrc
 
 
 
-
+# referencias
+https://github.com/PointCloudLibrary/pcl/blob/master/doc/tutorials/content/vfh_estimation.rst
+https://www.slideshare.net/antiw/cvpr2010-open-source-vision-software-intro-and-training-part-viii-point-cloud-library-rusu-unknown-2010
 
 
 
