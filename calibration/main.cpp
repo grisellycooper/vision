@@ -7,24 +7,30 @@ g++ -std=c++11 -O3 main.cpp addfunctions.cpp `pkg-config opencv --cflags --libs`
 //#define video_path "videos/calibration_mslifecam.avi"
 //#define video_path "../videos/calibration_ps3eyecam.avi"
 
-#define video_path "../videos/rings_wilber.webm"
 
 //#define video_path "../videos/chessboard_livecam.webm"
 //#define video_path "../videos/rings_livecam.webm"
 
+// videos de test
+//#define video_path "../videos/test/LifeCam_chess.avi"
+//#define video_path "../videos/test/LifeCam_asymmetric_circles.avi"
+//#define video_path "../videos/test/LifeCam_rings.avi"
 
-
+//#define video_path "../videos/test/PS3_chess.avi"
+//#define video_path "../videos/test/PS3_asymmetric_circles.avi"
+#define video_path "../videos/test/PS3_rings.avi"
 
 /** Global Variables **/
 cv::Mat frame;
-int patternType = RINGS_GRID; // Tipo de Patrón empleado (Ver Enum en includes)
+//int patternType = CHESSBOARD; // Tipo de Patrón empleado (Ver Enum en includes)
 //int patternType = ASYMMETRIC_CIRCLES_GRID; // Tipo de Patrón empleado (Ver Enum en includes)
+int patternType = RINGS_GRID; // Tipo de Patrón empleado (Ver Enum en includes)
 cv::Size imgPixelSize = Size(640,480); // Tamaño de la imagen
 cv::Size patternSize[] = {Size(6,9),Size(4,5),Size(4,11),Size(5,4)}; // Varia dependiendo del tipo de patron que usamos
 float squareSizes[] = {0.02315,0.02315,0.02315,0.04540}; // Separacion Real(en m) entre los puntos detectados
 // el Size(x,y) .. x: numero de filas, y: numero de columnas
-int noImages = 40; // Number of Images used for calibration
-int sample_FPS = 40; // trata de tomar una muestra cierto FPS
+int noImages = 75; // Number of Images used for calibration
+int sample_FPS = 20; // trata de tomar una muestra cierto FPS
 int mode = 0;
 
 std::vector< std::vector<cv::Point3f> > objPoints; // Puntos de nuestro objeto(Patron de calibracion)
