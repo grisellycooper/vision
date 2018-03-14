@@ -1,4 +1,3 @@
-
 /**FUNCIONES ADICIONALES PARA EL PROGRAMA**/
 
 #include "includes.h"

@@ -13,14 +13,16 @@
 #include <opencv2/opencv.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 
-//Usefull macros
-#define for_i(n) for(int i = 0; i < n;i++)
-
 using namespace std;
 using namespace cv;
 
+#define windowDim 1000
+
 #define windowName "video"
 #define windowGray "gray"
+
+//Usefull macros
+#define FOR(i,n) for(int i = 0; i < n;i++)
 
 enum Pattern{CHESSBOARD,CIRCLES_GRID,ASYMMETRIC_CIRCLES_GRID,RINGS_GRID};
 enum modes{DETECT_MODE,CALIBRATION_MODE,UNDISTORTION_MODE};
@@ -58,13 +60,13 @@ float SimpleAverage(const std::vector<float> & v);
 float getAvgColinearityFromVector(const std::vector<cv::Point2f>& PointBuffer, cv::Size size);
 float printAvgColinearity(const std::vector<float>& v);
 
-//templates
+/** TEMPLATES **/
 
 //Funcion para imprimir los valores de un vector
 template <typename T>
 void PrintSTDVector(const std::vector<T>&v){
 	cout << "[";
-	for_i(v.size())
+	FOR(i,v.size())
 		cout << v[i] << ",";
 	cout << "]\n";
 }
