@@ -71,5 +71,10 @@ void PrintSTDVector(const std::vector<T>&v){
 	cout << "]\n";
 }
 
+/** FRONTO PARALLEL TRANSFORM **/
+std::vector<cv::Point2f> extractCorners(std::vector<cv::Point2f>& v, cv::Size size);
+
+std::vector<cv::Point2f> getFrontoParallelCorners(cv::Size imgSize, cv::Size patternSize);
+
 
 #endif // INCLUDES_H

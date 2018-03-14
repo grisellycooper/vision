@@ -550,3 +550,36 @@ float printAvgColinearity(const std::vector<float>& v){
     cout << "El Promedio es " << sum / v.size() << endl;
     return sum / v.size();
 }
+
+std::vector<cv::Point2f> extractCorners(std::vector<cv::Point2f>& v, cv::Size size){
+    std::vector<cv::Point2f> corners;
+
+    // tenemos que separar las 4 esquinas del patron
+    corners.push_back(v[0]);
+
+    corners.push_back(v[size.width - 1]);
+
+    corners.push_back(v[v.size() - size.width]);
+
+    corners.push_back(v[v.size()-1]);
+
+    return corners;
+}
+
+std::vector<cv::Point2f> getFrontoParallelCorners(cv::Size imgSize, cv::Size patternSize){
+    float tx = 40.0f, ty = 25.0f;
+    float dim = 45.0f;
+    
+    std::vector<cv::Point2f> corners;
+
+    corners.push_back(cv::Point2f(tx,ty + patternSize.height * dim));
+
+    corners.push_back(cv::Point2f(tx + patternSize.width * dim, ty + patternSize.height * dim));
+
+    corners.push_back(cv::Point2f(tx,ty));
+
+    corners.push_back(cv::Point2f(tx + patternSize.width * dim,ty));
+
+    return corners;
+
+}
