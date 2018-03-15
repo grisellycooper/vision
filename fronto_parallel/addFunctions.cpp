@@ -583,3 +583,40 @@ std::vector<cv::Point2f> getFrontoParallelCorners(cv::Size imgSize, cv::Size pat
     return corners;
 
 }
+
+vector<Point2f>  distortion(vector<Point2f> cp,const cv::Mat& intrinsics,const cv::Mat& dist_coeff )
+{
+    float cx = intrinsics.at<double>(0,2), cy = intrinsics.at<double>(1,2), fx = intrinsics.at<double>(0,0), fy= intrinsics.at<double>(1,1);
+    float k1 = dist_coeff.at<double>(0,0), k2 = dist_coeff.at<double>(1,0), p1 = dist_coeff.at<double>(2,0), p2 = dist_coeff.at<double>(3,0), k3 = dist_coeff.at<double>(4,0);
+    vector<Point2f> corrected_points;
+
+
+    for(int i = 0; i < cp.size(); i++ )
+    {
+        float x = (cp[i].x - cx)/fx;
+        float y = (cp[i].y - cy)/fy;
+
+
+        //cout << cp[i].x << "," << cp[i].y << endl;
+
+        float r_2 = x*x + y*y;
+
+        float x_distort = x*(1+k1*r_2+k2*r_2*r_2 + k3*r_2*r_2*r_2);
+        float y_distort = y*(1+k1*r_2+k2*r_2*r_2 + k3*r_2*r_2*r_2);
+
+        x_distort += ( 2*p1*y*x + p2*( r_2 + 2*x*x) );
+        y_distort += ( p1*(r_2+2*y*y ) + 2*p2*x*y );
+
+        x_distort = x_distort*fx + cx; 
+        y_distort = y_distort*fy + cy; 
+
+        corrected_points.push_back( cv::Point2f(x_distort,y_distort) );
+    }
+
+    //cout << cx << " " << cy << " " << fx << " " << fy << endl;
+    //cout << k1 << " " << k2 << " " << p1 << " " << p2 << " " << k3 << endl;
+
+
+    return corrected_points;
+}
+
