@@ -7,8 +7,8 @@ g++ -std=c++11 -O3 main.cpp addFunctions.cpp `pkg-config opencv --cflags --libs`
 #include "includes.h"
 
 int patternType = RINGS_GRID;
-int noImages = 10; // Numero de imagenes para la Calibración
-int noIterations = 40;
+int noImages = 20; // Numero de imagenes para la Calibración
+int noIterations = 20;
 float squareSize = 0.04540;//meters
 cv::Size imgPixelSize = Size(640,480); // Tamaño de la imagen
 cv::Size patternSize = cv::Size(5,4);
