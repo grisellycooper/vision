@@ -53,7 +53,7 @@ int main(){
 			switch(key){
 				// Capture Frame
 				case 'x':{					
-					std::string str = "../img/" + video_path[i].substr(10,9) + "/" + std::to_string(count) + ".jpg";
+					std::string str = "../img/" + video_path[i].substr(10,9) + "/" + std::to_string(j) + ".jpg";
 					std::cout << "path : " << str << std::endl;
 					bool captured = cv::imwrite(str, frame);
 					if(captured){
