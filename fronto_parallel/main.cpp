@@ -8,7 +8,7 @@ g++ -std=c++11 -O3 main.cpp addFunctions.cpp `pkg-config opencv --cflags --libs`
 
 int patternType = RINGS_GRID;
 int noImages = 10; // Numero de imagenes para la Calibración
-int noIterations = 40;
+int noIterations = 50;
 float squareSize = 0.04540;//meters
 cv::Size imgPixelSize = Size(640,480); // Tamaño de la imagen
 cv::Size patternSize = cv::Size(5,4);
@@ -79,12 +79,17 @@ int main(){
 	
 	FOR(it,noIterations)
 	{
+		cout << "=================================\n";
+		cout << "           Iteracion " << it << endl;
+		cout << "=================================\n";
 		// Limpiamosc variables
 		rvecs.clear(); tvecs.clear();
 
 		// Comenzamos la Calibracion
 		rms = cv::calibrateCamera(objPoints,imgPoints, imgPixelSize,cameraMatrix,distCoeffs,rvecs,tvecs);
 		cout << "El error de reproyeccion obtenido fue de " << rms << endl;
+		cout << "Matriz Intrinseca:" << endl << cameraMatrix << endl;
+		cout << "Coeficientes de Distorsion: " << endl << distCoeffs << endl;
 
 		rms_set.push_back(rms);
 
@@ -194,7 +199,6 @@ int main(){
 	        //cout <<  cameraMatrix.at<double>(0,0) << endl; 
 	        //cout << "coeff dist: " << distCoeffs  << endl;
 
-	        
 
 	        vector<Point2f> corrected_points = distortion(points_buffer2,cameraMatrix,distCoeffs);
 	       	

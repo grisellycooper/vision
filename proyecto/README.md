@@ -152,6 +152,10 @@ Linux:
 		
 		Important: Please note that even though the directory is called Linux, you can also use it to compile it for 64-bit targets and pretty much any other linux based environment.	
 
+COMPILAR
+	g++ -std=c++11 main.cpp `pkg-config opencv --cflags --libs` -o app && sudo ./app
+
+
 
 
 
