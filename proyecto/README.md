@@ -95,6 +95,65 @@ luego borrar el build y volver a compilar (tb reiniciar la terminal)
 actualizar con $:source ~/.bashrc
 
 
+# Kinect 1 SET UP
+
+Pre-Reqs
+1. Opencv(2.4.13)
+instalar con cmake -D WITH_OPENNI=ON ..
+
+2. OPENNI ver 1.5
+Building OpenNI:
+		1) Go into the directory: "Platform/Linux/CreateRedist".
+		   Run the script: "./RedistMaker".
+		   This will compile everything and create a redist package in the "Platform/Linux/Redist" directory.
+		   It will also create a distribution in the "Platform/Linux/CreateRedist/Final" directory.
+		2) Go into the directory: "Platform/Linux/Redist".
+		   Run the script: "sudo ./install.sh" (needs to run as root)
+
+  		   The install script copies key files to the following location:
+		       Libs into: /usr/lib
+		       Bins into: /usr/bin
+		       Includes into: /usr/include/ni
+		       Config files into: /var/lib/ni
+			
+		To build the package manually, you can run "make" in the "Platform\Linux\Build" directory.
+		If you wish to build the Mono wrappers, also run "make mono_wrapper" and "make mono_samples".
+
+3. Sensor Kinect Driver
+Linux:
+	Requirements:
+		1) GCC 4.x
+		   From: http://gcc.gnu.org/releases.html
+		   Or via apt:
+		   sudo apt-get install g++
+		2) Python 2.6+/3.x
+		   From: http://www.python.org/download/
+		   Or via apt:
+		   sudo apt-get install python
+		3) OpenNI 1.5.x.x
+		   From: http://www.openni.org/Downloads/OpenNIModules.aspx
+		   
+	Building Sensor:
+		1) Go into the directory: "Platform/Linux/CreateRedist".
+		   Run the script: "./RedistMaker".
+		   This will compile everything and create a redist package in the "Platform/Linux/Redist" directory.
+		   It will also create a distribution in the "Platform/Linux/CreateRedist/Final" directory.
+		2) Go into the directory: "Platform/Linux/Redist".
+		   Run the script: "sudo ./install.sh" (needs to run as root)
+
+  		   The install script copies key files to the following location:
+		       Libs into: /usr/lib
+		       Bins into: /usr/bin
+		       Config files into: /usr/etc/primesense
+		       USB rules into: /etc/udev/rules.d 
+		       Logs will be created in: /var/log/primesense
+			
+		To build the package manually, you can run "make" in the "Platform\Linux\Build" directory.
+		
+		Important: Please note that even though the directory is called Linux, you can also use it to compile it for 64-bit targets and pretty much any other linux based environment.	
+
+
+
 
 
 
