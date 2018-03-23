@@ -8,17 +8,20 @@ g++ -std=c++11 -O3 main.cpp addFunctions.cpp `pkg-config opencv --cflags --libs`
 
 int patternType = RINGS_GRID;
 int noImages = 10; // Numero de imagenes para la Calibración
-int noIterations = 50;
+int noIterations = 30;
 float squareSize = 0.04540;//meters
 cv::Size imgPixelSize = Size(640,480); // Tamaño de la imagen
 cv::Size patternSize = cv::Size(5,4);
 
-cv::Mat frame;
-std::vector< std::vector<cv::Point3f> > objPoints; // Puntos de nuestro objeto(Patron de calibracion)
-// Suponemos que el patron se encuentra de forma paralela a la camara, y a una misma altura
-std::vector< std::vector<cv::Point2f> > imgPoints; // 2D Points en la Imagen(Pixels)
+// FUNCION MAIN
 
 int main(){
+	cv::Mat frame;
+	std::vector< std::vector<cv::Point3f> > objPoints; // Puntos de nuestro objeto(Patron de calibracion)
+	// Suponemos que el patron se encuentra de forma paralela a la camara, y a una misma altura
+	std::vector< std::vector<cv::Point2f> > imgPoints; // 2D Points en la Imagen(Pixels)
+
+
 	// Inital Calibration
 	objPoints.resize(1);
 	calcBoardCornerPositions(cv::Size(5,4),squareSize,objPoints[0],patternType);
@@ -29,6 +32,7 @@ int main(){
 
 	cv::namedWindow(windowName,0);
 	cv::resizeWindow(windowName,1000,1000);
+
 
 	//Variables para guardar los Valores de Correccion
 	double rms;
@@ -48,7 +52,7 @@ int main(){
 		isTracking = false; // Para que busque en todas las imagenes
 		bool found = findRingsGridPattern(frame,patternSize, PointBuffer, isTracking,oldPoints);
 
-		PrintSTDVector(PointBuffer);
+		//PrintSTDVector(PointBuffer);
 
 		if(found){
 			imgPoints.push_back(PointBuffer);
@@ -75,7 +79,9 @@ int main(){
 		else break;
 	}
 
+	// Calibracion Iterativa
 	vector<float> rms_set;
+	std::vector<cv::Point2f> fronto_corners = getFrontoParallelCorners(imgPixelSize,patternSize);
 	
 	FOR(it,noIterations)
 	{
@@ -84,6 +90,7 @@ int main(){
 		cout << "=================================\n";
 		// Limpiamosc variables
 		rvecs.clear(); tvecs.clear();
+		cout << imgPoints.size() << endl;
 
 		// Comenzamos la Calibracion
 		rms = cv::calibrateCamera(objPoints,imgPoints, imgPixelSize,cameraMatrix,distCoeffs,rvecs,tvecs);
@@ -93,9 +100,9 @@ int main(){
 
 		rms_set.push_back(rms);
 
-		std::vector< std::vector<cv::Point2f> > imgPoints2; 
+		std::vector< std::vector<cv::Point2f> > imgPoints2;
 
-		vector<float> v;
+		vector<float> v; // Para sacar un promedio de las colinealidades del vector
 
 		// Mostrar imagens sin Distorsion
 		FOR(i,noImages){
@@ -109,7 +116,6 @@ int main(){
 			cv::Mat temp = frame.clone();
 			cv::undistort(temp,frame,cameraMatrix,distCoeffs);
 
-			
 
 			std::vector<cv::Point2f> PointBuffer;
 
@@ -117,7 +123,7 @@ int main(){
 			bool found = findRingsGridPattern(frame,patternSize, PointBuffer, isTracking,oldPoints);
 
 			if(found){
-				imgPoints.push_back(PointBuffer);
+				//imgPoints2.push_back(PointBuffer);
 				//cv::drawChessboardCorners(frame,patternSize, PointBuffer,found);
 			}
 
@@ -131,7 +137,7 @@ int main(){
 			//PrintSTDVector(corners1);
 			//Verificación de los puntos obtenidos
 
-			std::vector<cv::Point2f> corners2 = getFrontoParallelCorners(imgPixelSize,patternSize);
+			
 
 			/**
 	        for(int i = 0; i < corners1.size(); i++){
@@ -140,10 +146,11 @@ int main(){
 	        }
 	        **/
 
-	        cv::Mat H = cv::findHomography(corners1,corners2);
+	        cv::Mat H = cv::findHomography(corners1,fronto_corners);
 	        //cout << "H:\n" << H << endl;
 	        //cout << "H.inv:\n" << H.inv() << endl;
 
+	        //Transformacion Fronto Parallel
 	        cv::Mat imgWarp;
 	        cv::warpPerspective(frame,imgWarp,H,Size(320,240));
 
@@ -174,11 +181,13 @@ int main(){
 			isTracking = false; // Para que busque en todas las imagenes
 			bool found2 = findRingsGridPattern(imgWarp,patternSize, PointBuffer, isTracking,oldPoints);
 
-			if(found2){
-				//imgPoints.push_back(PointBuffer);
+			if(!found2){
 				//cv::drawChessboardCorners(imgWarp,patternSize, PointBuffer,found);
+				cout << "no se pudo enconrtar el patron en la proyeccion FrontoParallel\n";
+				return 0;
 			}
 
+			//Transformacion Fronto Parallel Inversa
 			cv::Mat imgWarp_inv;
 	        cv::warpPerspective(imgWarp,imgWarp_inv,H.inv(),frame.size());
 
@@ -217,7 +226,7 @@ int main(){
 	        cv::imshow("inv",imgWarp_inv);
 			cv::imshow(windowName,frame);
 
-			int key = cv::waitKey(1);
+			int key = cv::waitKey(10);
 
 			bool c = true;
 			switch(key){
@@ -234,7 +243,12 @@ int main(){
 			else break;
 
 		}
-		imgPoints = imgPoints2;
+		
+		FOR(i,noImages)
+			FOR(j,patternSize.width * patternSize.height){
+				imgPoints[i][j].x = (imgPoints[i][j].x +  imgPoints2[i][j].x) / 2.0;
+				imgPoints[i][j].y = (imgPoints[i][j].y +  imgPoints2[i][j].y) / 2.0;
+			}
 
 		printAvgColinearity(v);
 

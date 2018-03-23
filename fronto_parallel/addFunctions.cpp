@@ -19,8 +19,8 @@ bool findRingsGridPattern(cv::Mat Input, cv::Size size, std::vector<cv::Point2f>
     // ===================
     vector<vector<Point>> contours;
     vector<Vec4i> hierachy;
-
-    findContours(gray,contours,hierachy,CV_RETR_TREE,CV_CHAIN_APPROX_SIMPLE,Point(0,0));
+    findContours(gray.clone(),contours,hierachy,CV_RETR_TREE,CV_CHAIN_APPROX_SIMPLE,Point(0,0));
+    //cv::imshow("g",gray);
 
     vector<RotatedRect>minEllipse(contours.size());
 
@@ -33,6 +33,7 @@ bool findRingsGridPattern(cv::Mat Input, cv::Size size, std::vector<cv::Point2f>
 
     //Filtrar las ellipses
     cv::cvtColor(gray,gray, CV_GRAY2BGR);
+
     vector<RotatedRect> selected;
     for( int i = 0; i< contours.size(); i++ ){
         float w = minEllipse[i].size.width;
