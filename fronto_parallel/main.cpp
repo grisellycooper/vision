@@ -6,6 +6,8 @@ g++ -std=c++11 -O3 main.cpp addFunctions.cpp `pkg-config opencv --cflags --libs`
 
 #include "includes.h"
 
+#define path "../img/30/"
+
 int patternType = RINGS_GRID;
 int noImages = 10; // Numero de imagenes para la Calibración
 int noIterations = 30;
@@ -43,7 +45,7 @@ int main(){
     //Capturamos las matrices
 	FOR(i,noImages){
 		
-		string filename = "../img/" + std::to_string(i)  +  ".jpg";
+		string filename = path + std::to_string(i)  +  ".jpg";
 
 		frame = cv::imread(filename,CV_LOAD_IMAGE_COLOR);
 
@@ -106,7 +108,7 @@ int main(){
 
 		// Mostrar imagens sin Distorsion
 		FOR(i,noImages){
-			string filename = "../img/" + std::to_string(i)  +  ".jpg";
+			string filename = path + std::to_string(i)  +  ".jpg";
 			frame = cv::imread(filename,CV_LOAD_IMAGE_COLOR);
 
 
