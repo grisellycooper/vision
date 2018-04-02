@@ -6,10 +6,10 @@ g++ -std=c++11 -O3 main.cpp addFunctions.cpp `pkg-config opencv --cflags --libs`
 
 #include "includes.h"
 
-#define path "../img/30/"
+#define path "../img/30/20/"
 
 int patternType = RINGS_GRID;
-int noImages = 10; // Numero de imagenes para la Calibración
+int noImages = 20; // Numero de imagenes para la Calibración
 int noIterations = 30;
 float squareSize = 0.04540;//meters
 cv::Size imgPixelSize = Size(640,480); // Tamaño de la imagen
@@ -124,11 +124,16 @@ int main(){
 			isTracking = false; // Para que busque en todas las imagenes
 			bool found = findRingsGridPattern(frame,patternSize, PointBuffer, isTracking,oldPoints);
 
+			//cv::imshow(windowName, frame);
+			//waitKey(100000);
+
 			if(found){
 				//imgPoints2.push_back(PointBuffer);
 				//cv::drawChessboardCorners(frame,patternSize, PointBuffer,found);
 			}
-
+			else{
+				cout << "Patron no encontrado\n";
+			}
 
 			float m = getAvgColinearityFromVector( PointBuffer, patternSize );
 			v.push_back(m);
@@ -182,6 +187,8 @@ int main(){
 	        PointBuffer.clear();
 			isTracking = false; // Para que busque en todas las imagenes
 			bool found2 = findRingsGridPattern(imgWarp,patternSize, PointBuffer, isTracking,oldPoints);
+
+
 
 			if(!found2){
 				//cv::drawChessboardCorners(imgWarp,patternSize, PointBuffer,found);

@@ -24,15 +24,20 @@ bool findRingsGridPattern(cv::Mat Input, cv::Size size, std::vector<cv::Point2f>
 
     vector<RotatedRect>minEllipse(contours.size());
 
+    cv::cvtColor(gray,gray, CV_GRAY2BGR); // <------------- Cambiamos a color
     // Fitear una elipse a los contornos detectados
     for( int i = 0; i < contours.size(); i++ ){
         //minRect[i] = minAreaRect( Mat(contours[i]) );
+        //Scalar color( rand()&255, rand()&255, rand()&255 );
+        drawContours( gray, contours, i, Scalar(0,255,255), 1, 8);
         if( contours[i].size() > 4 ){
             minEllipse[i] = fitEllipse( Mat(contours[i]) ); }
+
+        if( contours[i].size() == 4)
+            minEllipse[i] = cv::minAreaRect( Mat(contours[i]) );
     }
 
     //Filtrar las ellipses
-    cv::cvtColor(gray,gray, CV_GRAY2BGR);
 
     vector<RotatedRect> selected;
     for( int i = 0; i< contours.size(); i++ ){
@@ -41,6 +46,8 @@ bool findRingsGridPattern(cv::Mat Input, cv::Size size, std::vector<cv::Point2f>
         float c_x = minEllipse[i].center.x;
         float c_y = minEllipse[i].center.y;
         float dif = w - h;
+
+        //ellipse( gray, minEllipse[i], Scalar(0,0,255), 1, 8 );
         
         if(abs(dif) < 40){ //-->>> CAMBIAR ESTE PARAMETRO PARA FILTRAR LAS ELIPSES
             if(hierachy[i][2] != -1){ // Si el Contour tiene Hijo que hijo sea unico
