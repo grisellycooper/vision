@@ -77,10 +77,10 @@ int main(int argc, char const *argv[])
 	// Numero total de frames donde se detecto el patron
 	cout << "Numero Total de Frames Capturados: " << voMats.size() << endl;
 
-	FOR(i,voMats.size()){
-		cv::imshow(WinName,voMats[i]);
-		if(waitKey(10) == 27) break;		
-	}
+	// FOR(i,voMats.size()){
+	// 	cv::imshow(WinName,voMats[i]);
+	// 	if(waitKey(10) == 27) break;		
+	// }
 
 	// Obtenemos la mejor combinación de frames
 	std::vector<int> bestFrames = calc_BestFrameCombination(voAffections,noOutputImages);
@@ -89,8 +89,8 @@ int main(int argc, char const *argv[])
 	FOR(i, bestFrames.size()){
 		std::string str = "../img/30/" + std::to_string(i)+".jpg";
 		bool captured = cv::imwrite(str,voMats[ bestFrames[i] ]);
-		if(captured) cout << "Imagen capturada con exito!" << endl;
-		else cout << "No se pudo Capturar Imagen" << endl;
+
+		if(!captured) cout << "No se pudo Capturar Imagen " << i << endl;
 	}
 
 	return 0;

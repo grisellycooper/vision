@@ -649,8 +649,8 @@ std::vector<int> calc_BestFrameCombination(const std::vector< std::vector<bool> 
     std::iota(indices.begin(), indices.end(), 0); // Fill 0,1,...
 
     std::vector<int> best_sol; // best combination solution
-    int noIterations = 100;
-    int max_diff = 100;
+    int noIterations = 10000;
+    int max_diff = 100000;
 
     FOR(i,noIterations){
         std::random_shuffle(indices.begin(), indices.end());
@@ -664,6 +664,8 @@ std::vector<int> calc_BestFrameCombination(const std::vector< std::vector<bool> 
                 acc[k] += voAffections[ tmp[j] ][k];
             }
 
+        // PrintSTDVector(acc);
+
         //Check that solution dont have zeros on it
         bool test1 = true;
         FOR(j,acc.size())
@@ -676,12 +678,15 @@ std::vector<int> calc_BestFrameCombination(const std::vector< std::vector<bool> 
         } 
 
         auto min_it = std::min_element(acc.begin(), acc.end());
-        auto max_it = std::min_element(acc.begin(), acc.end());
+        auto max_it = std::max_element(acc.begin(), acc.end());
 
         if(*max_it - *min_it < max_diff){
             max_diff = *max_it - *min_it;
             best_sol = tmp;
-        } 
+            PrintSTDVector(acc);
+            cout << "Max: " << *max_it << " Min: " << *min_it << " Homogeneidad: " << max_diff << endl;
+        }
+        //cout << "Current Iteration: " << i << endl;
 
         //PrintSTDVector(acc);
 
