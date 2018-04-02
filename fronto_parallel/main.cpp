@@ -40,7 +40,7 @@ int main(){
 	double rms;
     cv::Mat cameraMatrix = cv::Mat::eye(3,3,CV_64F); // Matriz para guardar la camera Intrinsics
     cv::Mat distCoeffs = cv::Mat::zeros(8, 1,CV_64F); // Aqui guardamos los coeficientes de Distorsion
-    std::vector<cv::Mat> rvecs,tvecs; //Vectores de rotacion y de traslacion para para frame
+    std::vector<cv::Mat> rvecs,tvecs; //Vectores de rotacion y de traslacion para cada frame
 
     //Capturamos las matrices
 	FOR(i,noImages){
@@ -60,11 +60,14 @@ int main(){
 			imgPoints.push_back(PointBuffer);
 			cv::drawChessboardCorners(frame,patternSize, PointBuffer,found);
 		}
+		else{
+			cout << "Patron no encontrado\n";
+		}
 
 
 		cv::imshow(windowName,frame);
 
-		int key = cv::waitKey(10000);
+		int key = cv::waitKey(100000);
 
 		bool c = true;
 		switch(key){
@@ -116,24 +119,34 @@ int main(){
 			//getAvgColinearityFromVector( PointBuffer, patternSize );
 
 			cv::Mat temp = frame.clone();
-			cv::undistort(temp,frame,cameraMatrix,distCoeffs);
+			cv::Mat OptimalMatrix = cv::getOptimalNewCameraMatrix(cameraMatrix, distCoeffs, Size(640,480), 1.0);
+			cv::undistort(temp,frame,cameraMatrix,distCoeffs,OptimalMatrix);
 
 
 			std::vector<cv::Point2f> PointBuffer;
 
-			isTracking = false; // Para que busque en todas las imagenes
-			bool found = findRingsGridPattern(frame,patternSize, PointBuffer, isTracking,oldPoints);
+			// Buffer de puntos hallados usando el algoritmo
+			// // isTracking = false; // Para que busque en todas las imagenes
+			// // bool found = findRingsGridPattern(frame,patternSize, PointBuffer, isTracking,oldPoints);
+			// //cv::imshow(windowName, frame);
+			// //waitKey(100000);
+			//
+			// if(found){
+			// 	//imgPoints2.push_back(PointBuffer);
+			// 	//cv::drawChessboardCorners(frame,patternSize, PointBuffer,found);
+			// }
+			// else{
+			// 	cout << "Patron no encontrado\n";
+			// }
 
-			//cv::imshow(windowName, frame);
-			//waitKey(100000);
+			// Buffer hallado usando solo los coeficientes de calibrate camera
+			// undistorting points only
+			//PrintSTDVector(imgPoints[i]);
+			cv::undistortPoints(imgPoints[i], PointBuffer, cameraMatrix, distCoeffs, cv::noArray(),OptimalMatrix);
 
-			if(found){
-				//imgPoints2.push_back(PointBuffer);
-				//cv::drawChessboardCorners(frame,patternSize, PointBuffer,found);
-			}
-			else{
-				cout << "Patron no encontrado\n";
-			}
+			//PrintSTDVector(PointBuffer);
+			//cv::drawChessboardCorners(frame,patternSize, PointBuffer,true);
+
 
 			float m = getAvgColinearityFromVector( PointBuffer, patternSize );
 			v.push_back(m);
@@ -188,12 +201,15 @@ int main(){
 			isTracking = false; // Para que busque en todas las imagenes
 			bool found2 = findRingsGridPattern(imgWarp,patternSize, PointBuffer, isTracking,oldPoints);
 
+			//cv::imshow("a", imgWarp);
+			//waitKey(100000);
+
 
 
 			if(!found2){
 				//cv::drawChessboardCorners(imgWarp,patternSize, PointBuffer,found);
 				cout << "no se pudo enconrtar el patron en la proyeccion FrontoParallel\n";
-				return 0;
+				//return 0;
 			}
 
 			//Transformacion Fronto Parallel Inversa
@@ -217,11 +233,23 @@ int main(){
 	        //cout <<  cameraMatrix.at<double>(0,0) << endl; 
 	        //cout << "coeff dist: " << distCoeffs  << endl;
 
+	        //vector<Point2f> corrected_points  = distortion(points_buffer2,cameraMatrix,distCoeffs);
+	        //std::vector<cv::Point3f> corrected_points_tmp;
+	        std::vector<cv::Point2f> corrected_points;
+	        //cv::Mat rtemp = cv::Mat::zeros(3,1,CV_64F);
+	        //cv::Mat ttemp = cv::Mat::zeros(3,1,CV_64F);
 
-	        vector<Point2f> corrected_points = distortion(points_buffer2,cameraMatrix,distCoeffs);
+	        //cv::undistortPoints(imgPoints[i], PointBuffer, cameraMatrix, distCoeffs, cv::noArray(),OptimalMatrix);
+
+	        // Distorsión Inversa
+	        cv::undistortPoints(points_buffer2,corrected_points,OptimalMatrix,-distCoeffs,cv::noArray(),cameraMatrix);
+	        //cv::convertPointsToHomogeneous(points_buffer2,corrected_points_tmp);
+	        //cv::projectPoints(corrected_points_tmp, rtemp, ttemp, cameraMatrix, distCoeffs, corrected_points);
+
+	        //PrintSTDVector(corrected_points);
 	       	
-	       	cv::drawChessboardCorners(imgWarp_inv, patternSize, corrected_points, found);
-	       	cv::drawChessboardCorners(imgWarp_inv, patternSize, imgPoints[i], found);
+	       	cv::drawChessboardCorners(imgWarp_inv, patternSize, corrected_points, true);
+	       	cv::drawChessboardCorners(imgWarp_inv, patternSize, imgPoints[i], true);
 	       	//vector<Point2f> corrected_points;
 	       	//cv::projectPoints( corrected_points,  )
 	       	//PrintSTDVector(corrected_points);

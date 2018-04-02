@@ -32,7 +32,7 @@ enum modes{DETECT_MODE,CALIBRATION_MODE,UNDISTORTION_MODE};
 bool findRingsGridPattern(cv::Mat Input, cv::Size size, std::vector<cv::Point2f>& points, bool& isTracking, std::vector<cv::Point2f>& oldPoints);
 // RING PATTERN DETECTION ADDITIONAL FUNCTIONS
 vector<Point2f> getControlPoints(const vector<Point2f> & centers);
-bool FindRingPattern(vector<Point2f> &probableCPs,int num_rows,int num_cols);
+bool FindRingPattern(vector<Point2f> &probableCPs,cv::Mat & frame,int num_rows,int num_cols);
 bool isColinear(Vec4f line, Point2f point);
 
 // Funciones Adicionales para la Matrix Intrinseca

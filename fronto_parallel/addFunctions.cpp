@@ -33,8 +33,8 @@ bool findRingsGridPattern(cv::Mat Input, cv::Size size, std::vector<cv::Point2f>
         if( contours[i].size() > 4 ){
             minEllipse[i] = fitEllipse( Mat(contours[i]) ); }
 
-        if( contours[i].size() == 4)
-            minEllipse[i] = cv::minAreaRect( Mat(contours[i]) );
+        //if( contours[i].size() == 4)
+        //    minEllipse[i] = cv::minAreaRect( Mat(contours[i]) );
     }
 
     //Filtrar las ellipses
@@ -192,7 +192,7 @@ bool findRingsGridPattern(cv::Mat Input, cv::Size size, std::vector<cv::Point2f>
         //cout << "Start Tracking\n";
         // Buscamos encontrar el patron, devolvemos solo el numero correspondiente de nodos
         // Ademas Ordenamos los nodos, primero por fila, luego por columna
-        bool patternWasFound = FindRingPattern(CPs,4,5);
+        bool patternWasFound = FindRingPattern(CPs,gray,4,5);
         //patternWasFound = false;
 
         //Esta parte del codigo debe enviar 20 puntos Ordenados y en grilla hacia TrackedPoints
@@ -305,7 +305,7 @@ bool isColinear(Vec4f line, Point2f point){
     return false;
 }
 
-bool FindRingPattern(vector<Point2f> &probableCPs,int num_rows,int num_cols){
+bool FindRingPattern(vector<Point2f> &probableCPs,cv::Mat & frame,int num_rows,int num_cols){
     int n = probableCPs.size();
     std::vector<Vec4f> lines;
     // Generamos todas las Combinaciones de "Lineas" en grupos de 5 posibles
@@ -343,6 +343,7 @@ bool FindRingPattern(vector<Point2f> &probableCPs,int num_rows,int num_cols){
         //Si el error de la linea no es mucho. Seleccionamos la linea
         if(stddev < 0.5f){
             preSelectedLines.push_back(tmpLine);
+            line(frame, Point2f(x0-m*vx, y0-m*vy), Point2f(x0+m*vx, y0+m*vy),Scalar(0,255,0));
             //Guardamos la Combinacion
             combination_preSelectedLines.push_back(combinations[i]);
         }
@@ -575,7 +576,7 @@ std::vector<cv::Point2f> extractCorners(std::vector<cv::Point2f>& v, cv::Size si
 }
 
 std::vector<cv::Point2f> getFrontoParallelCorners(cv::Size imgSize, cv::Size patternSize){
-    float tx = 40.0f, ty = 25.0f;
+    float tx = 40.0f, ty = 30.0f;
     float dim = 45.0f;
     
     std::vector<cv::Point2f> corners;
