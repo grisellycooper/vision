@@ -90,18 +90,20 @@ int main(){
 	
 	FOR(it,noIterations)
 	{
-		cout << "=================================\n";
-		cout << "           Iteracion " << it << endl;
-		cout << "=================================\n";
+		// cout << "=================================\n";
+		// cout << "           Iteracion " << it << endl;
+		// cout << "=================================\n";
 		// Limpiamosc variables
 		rvecs.clear(); tvecs.clear();
-		cout << imgPoints.size() << endl;
+		// cout << imgPoints.size() << endl;
 
 		// Comenzamos la Calibracion
 		rms = cv::calibrateCamera(objPoints,imgPoints, imgPixelSize,cameraMatrix,distCoeffs,rvecs,tvecs);
-		cout << "El error de reproyeccion obtenido fue de " << rms << endl;
-		cout << "Matriz Intrinseca:" << endl << cameraMatrix << endl;
-		cout << "Coeficientes de Distorsion: " << endl << distCoeffs << endl;
+		cout << it << " " << cameraMatrix.at<double>(0,0) << " " << cameraMatrix.at<double>(1,1) <<
+		" " << cameraMatrix.at<double>(0,2) << " " << cameraMatrix.at<double>(1,2) << " " << rms << " ";
+		// cout << "El error de reproyeccion obtenido fue de " << rms << endl;
+		// cout << "Matriz Intrinseca:" << endl << cameraMatrix << endl;
+		// cout << "Coeficientes de Distorsion: " << endl << distCoeffs << endl;
 
 		rms_set.push_back(rms);
 
@@ -201,8 +203,8 @@ int main(){
 			isTracking = false; // Para que busque en todas las imagenes
 			bool found2 = findRingsGridPattern(imgWarp,patternSize, PointBuffer, isTracking,oldPoints);
 
-			//cv::imshow("a", imgWarp);
-			//waitKey(100000);
+			cv::imshow("a", imgWarp);
+			waitKey(100000);
 
 
 
@@ -287,7 +289,7 @@ int main(){
 				imgPoints[i][j].y = (imgPoints[i][j].y +  imgPoints2[i][j].y) / 2.0;
 			}
 
-		printAvgColinearity(v);
+		cout << printAvgColinearity(v) << endl;
 
 		//rms = cv::calibrateCamera(objPoints,imgPoints2, imgPixelSize,cameraMatrix,distCoeffs,rvecs,tvecs);
 		//cout << "El error de reproyeccion obtenido fue de " << rms << endl;
@@ -296,7 +298,7 @@ int main(){
 	//std::cout << std::min_element( std::begin(rms_set), std::end(rms_set) ) << std::endl;
 	std::sort( rms_set.begin(), rms_set.end() );
 
-	cout << "El menor rms obtenido: "<< rms_set[0] << endl;
+	// cout << "El menor rms obtenido: "<< rms_set[0] << endl;
 
 	//terminando el programa
     cv::destroyAllWindows();

@@ -556,7 +556,7 @@ float printAvgColinearity(const std::vector<float>& v){
     double sum = 0.0;
     for(int i = 0; i < v.size();i++)
         sum += v[i];
-    cout << "El Promedio es " << sum / v.size() << endl;
+    //cout << "El Promedio es " << sum / v.size() << endl;
     return sum / v.size();
 }
 
