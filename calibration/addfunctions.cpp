@@ -8,7 +8,7 @@ bool findRingsGridPattern(cv::Mat Input, cv::Size size, std::vector<cv::Point2f>
     // PRE - FILTERS
     // ===================
     cv::Mat gray;
-    cv::cvtColor(Input,gray,CV_BGR2GRAY);
+    cv::cvtColor(Input,gray,cv::COLOR_BGR2GRAY);
     GaussianBlur(gray,gray,Size(3,3),0);
     adaptiveThreshold(gray,gray,255,ADAPTIVE_THRESH_GAUSSIAN_C,THRESH_BINARY,41,6);
 
@@ -21,7 +21,7 @@ bool findRingsGridPattern(cv::Mat Input, cv::Size size, std::vector<cv::Point2f>
     vector<vector<Point>> contours;
     vector<Vec4i> hierachy;
 
-    findContours(gray,contours,hierachy,CV_RETR_TREE,CV_CHAIN_APPROX_SIMPLE,Point(0,0));
+    findContours(gray,contours,hierachy,cv::RETR_TREE,cv::CHAIN_APPROX_SIMPLE,Point(0,0));
 
     vector<RotatedRect>minEllipse(contours.size());
 
@@ -33,7 +33,7 @@ bool findRingsGridPattern(cv::Mat Input, cv::Size size, std::vector<cv::Point2f>
     }
 
     //Filtrar las ellipses
-    cv::cvtColor(gray,gray, CV_GRAY2BGR);
+    cv::cvtColor(gray,gray, cv::COLOR_GRAY2BGR);
     vector<RotatedRect> selected;
     for( int i = 0; i< contours.size(); i++ ){
         float w = minEllipse[i].size.width;
@@ -314,7 +314,7 @@ bool FindRingPattern(vector<Point2f> &probableCPs,int num_rows,int num_cols){
         for(int j = 0; j < num_cols; j++){
             tmpPoints[j] = probableCPs[ combinations[i][j] ];
         }
-        fitLine(tmpPoints,tmpLine,CV_DIST_L2,0,0.01,0.01);
+        fitLine(tmpPoints,tmpLine,cv::DIST_L2,0,0.01,0.01);
         // Extraction of Features
         //Le damos forma a los valores vectoriales que nos devuelve fitline
         // r = a + r*b --> p0 punto de paso, v vector director normalizado
@@ -506,7 +506,7 @@ float getAvgColinearityFromVector(const std::vector<cv::Point2f>& PointBuffer, c
             tmpPoints[r] = PointBuffer[j];
         }
         //PrintSTDVector(tmpPoints);
-        fitLine(tmpPoints,tmpLine,CV_DIST_L2,0,0.01,0.01);
+        fitLine(tmpPoints,tmpLine,cv::DIST_L2,0,0.01,0.01);
         // Extraction of Features
         //Le damos forma a los valores vectoriales que nos devuelve fitline
         // r = a + r*b --> p0 punto de paso, v vector director normalizado

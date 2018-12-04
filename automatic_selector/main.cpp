@@ -9,7 +9,10 @@ g++ -std=c++11 main.cpp addFunctions.cpp `pkg-config opencv --cflags --libs` -o 
 // videos de test
 //#define video_path "../videos/test/LifeCam_chess.avi"
 //#define video_path "../videos/test/LifeCam_asymmetric_circles.avi"
-#define video_path "../videos/test/LifeCam_rings.avi"
+//#define video_path "../videos/test/LifeCam_rings.avi"
+
+//Test Sol
+#define video_path "../../videos/PadronAnillos_01.avi" 
 
 //#define video_path "../videos/test/PS3_chess.avi"
 //#define video_path "../videos/test/PS3_asymmetric_circles.avi"

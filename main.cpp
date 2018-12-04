@@ -39,14 +39,17 @@ const char * WindowRGB = "RGB";
 
 //Video Files
 //#define video_path "videos/calibration_mslifecam.avi"
-#define video_path "videos/calibration_ps3eyecam.avi"
+//#define video_path "videos/calibration_ps3eyecam.avi"
 //#define video_path "videos/Kinect2_rgb.avi"
 //#define video_path "videos/realsense_Depth.avi"
 //#define video_path "videos/realsense_RGB.avi"
 
+//Test Sol
+#define video_path "../videos/PadronAnillos_01.avi" 
+
 void PreFilters(){
     /**Pasando a Grises**/
-    cvtColor(frame,gray,CV_BGR2GRAY);
+    cvtColor(frame,gray,cv::COLOR_BGR2GRAY);
         //cout << gray.size().width << " "<< gray.size().height;
 
         /**
@@ -133,7 +136,7 @@ bool FindRingPattern(vector<Point2f> &probableCPs,int num_rows,int num_cols){
         for(int j = 0; j < num_cols; j++){
             tmpPoints[j] = probableCPs[ combinations[i][j] ];
         }
-        fitLine(tmpPoints,tmpLine,CV_DIST_L2,0,0.01,0.01);
+        fitLine(tmpPoints,tmpLine,cv::DIST_L2,0,0.01,0.01);
         // Extraction of Features
         //Le damos forma a los valores vectoriales que nos devuelve fitline
         // r = a + r*b --> p0 punto de paso, v vector director normalizado
@@ -250,7 +253,7 @@ void EllipsisDetection(){
     vector<Vec4i> hierachy;
 
     //Find Contours
-    findContours(gray,contours,hierachy,CV_RETR_TREE,CV_CHAIN_APPROX_SIMPLE,Point(0,0));
+    findContours(gray,contours,hierachy,cv::RETR_TREE,cv::CHAIN_APPROX_SIMPLE,Point(0,0));
 
     //Find rotated rectangles and ellipsis
     //vector<RotatedRect>minRect(contours.size());
@@ -265,7 +268,7 @@ void EllipsisDetection(){
 
     /// Draw contours + rotated rects + ellipses
     Ellipsis = gray;
-    cvtColor(gray, Ellipsis,CV_GRAY2BGR);
+    cvtColor(gray, Ellipsis,cv::COLOR_GRAY2BGR);
     //Ellipsis = Mat::zeros( gray.size(), CV_8UC3 );
     //cout << "==================================================\n";
 
@@ -479,7 +482,7 @@ int main(){
         return -1;
     }
 
-    double count = cap.get(CV_CAP_PROP_FRAME_COUNT); //get the frame count
+    double count = cap.get(cv::CAP_PROP_FRAME_COUNT); //get the frame count
 
     //Procesamos todos los frames
 
@@ -535,8 +538,8 @@ int main(){
             elapsed_seconds = 0.0;
         }
         cout << "Tracked Num Frames: " << num_TrackedFrames << " Total Frames: "<<num_Frames<<endl; 
-        putText(frame,to_string((float) num_TrackedFrames / num_Frames * 100.0) + " %",Point(400,430),FONT_HERSHEY_SIMPLEX,1,Scalar(200,200,0),2,CV_AA);
-        putText(frame,to_string(time) + " ms",Point(400,470),FONT_HERSHEY_SIMPLEX,1,Scalar(200,200,0),2,CV_AA);
+        putText(frame,to_string((float) num_TrackedFrames / num_Frames * 100.0) + " %",Point(400,430),FONT_HERSHEY_SIMPLEX,1,Scalar(200,200,0),2,cv::LINE_AA);
+        putText(frame,to_string(time) + " ms",Point(400,470),FONT_HERSHEY_SIMPLEX,1,Scalar(200,200,0),2,cv::LINE_AA);
 
         imshow(WindowName,Ellipsis);
         imshow(WindowRGB,frame);

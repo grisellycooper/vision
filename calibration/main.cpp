@@ -12,7 +12,7 @@ g++ -std=c++11 -O3 main.cpp addfunctions.cpp `pkg-config opencv --cflags --libs`
 //#define video_path "../videos/rings_livecam.webm"
 
 // videos de test
-#define video_path "../videos/test/LifeCam_chess.avi"
+//#define video_path "../videos/test/LifeCam_chess.avi"
 //#define video_path "../videos/test/LifeCam_asymmetric_circles.avi"
 //#define video_path "../videos/test/LifeCam_rings.avi"
 
@@ -20,10 +20,15 @@ g++ -std=c++11 -O3 main.cpp addfunctions.cpp `pkg-config opencv --cflags --libs`
 //#define video_path "../videos/test/PS3_asymmetric_circles.avi"
 //#define video_path "../videos/test/PS3_rings.avi"
 
+//Test Sol
+//#define video_path "../../videos/PadronAnillos_01.avi"
+#define video_path "../../videos/PadronCirculos_01.avi"  
+
+
 /** Global Variables **/
 cv::Mat frame;
-int patternType = CHESSBOARD; // Tipo de Patrón empleado (Ver Enum en includes)
-//int patternType = ASYMMETRIC_CIRCLES_GRID; // Tipo de Patrón empleado (Ver Enum en includes)
+//int patternType = CHESSBOARD; // Tipo de Patrón empleado (Ver Enum en includes)
+int patternType = ASYMMETRIC_CIRCLES_GRID; // Tipo de Patrón empleado (Ver Enum en includes)
 //int patternType = RINGS_GRID; // Tipo de Patrón empleado (Ver Enum en includes)
 cv::Size imgPixelSize = Size(640,480); // Tamaño de la imagen
 cv::Size patternSize[] = {Size(9,6),Size(4,5),Size(4,11),Size(5,4)}; // Varia dependiendo del tipo de patron que usamos

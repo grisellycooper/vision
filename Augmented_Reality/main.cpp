@@ -29,12 +29,5 @@ int main(int argc, char const *argv[])
 		cv::imshow(WinName,frame);
 		if(waitKey(10) == 27) break;
 	}
-
-	
-
-
-
-
-
 	return 0;
 }
